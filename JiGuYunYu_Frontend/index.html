@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JiGuYunYu 后端联调页</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; background: #f7f8fa; color: #1f2328; }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    h1 { margin-top: 0; font-size: 24px; }
+    h2 { margin: 0 0 12px 0; font-size: 18px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    input, textarea, button { font-size: 14px; }
+    input, textarea { width: 100%; box-sizing: border-box; border: 1px solid #d0d7de; border-radius: 8px; padding: 8px; }
+    textarea { min-height: 86px; }
+    button { border: 1px solid #0969da; background: #0969da; color: #fff; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    button.secondary { background: #fff; color: #0969da; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0d1117; color: #c9d1d9; padding: 12px; border-radius: 8px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>JiGuYunYu 后端联调验证页</h1>
+
+    <div class="card">
+      <h2>基础地址配置</h2>
+      <div class="row"><input id="javaBase" value="http://localhost" placeholder="Java/Nginx 基础地址" /></div>
+      <div class="row"><input id="pythonBase" value="http://localhost:8000" placeholder="Python 基础地址" /></div>
+    </div>
+
+    <div class="card">
+      <h2>健康检查</h2>
+      <div class="row">
+        <button onclick="checkJavaHealth()">检查 Java 健康</button>
+        <button onclick="checkPythonHealth()">检查 Python 健康</button>
+      </div>
+      <pre id="healthOutput">点击按钮开始检查...</pre>
+    </div>
+
+    <div class="card">
+      <h2>对话接口测试（Java）</h2>
+      <div class="row"><input id="dialogUserId" placeholder="userId" value="1" /></div>
+      <div class="row"><textarea id="dialogBody">{"content":"你好，给我一句测试回复"}</textarea></div>
+      <div class="row"><button onclick="testDialog()">发送 /api/v1/dialog/requests</button></div>
+      <pre id="dialogOutput">等待请求...</pre>
+    </div>
+
+    <div class="card">
+      <h2>检测任务创建（Java）</h2>
+      <div class="row"><textarea id="detectBody">{"artifactId":1}</textarea></div>
+      <div class="row"><button onclick="testDetect()">发送 /api/v1/detect/tasks</button></div>
+      <pre id="detectOutput">等待请求...</pre>
+    </div>
+  </div>
+
+  <script>
+    async function requestJson(url, options = {}) {
+      const res = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        }
+      });
+      const text = await res.text();
+      let parsed;
+      try { parsed = JSON.parse(text); } catch { parsed = text; }
+      return { status: res.status, data: parsed };
+    }
+
+    function pretty(obj) { return JSON.stringify(obj, null, 2); }
+
+    async function checkJavaHealth() {
+      const base = document.getElementById('javaBase').value.trim().replace(/\/$/, '');
+      const out = document.getElementById('healthOutput');
+      out.textContent = '请求中...';
+      try {
+        const result = await requestJson(base + '/api/v1/health');
+        out.textContent = 'Java /api/v1/health\n' + pretty(result);
+      } catch (e) {
+        out.textContent = 'Java 健康检查失败：\n' + e;
+      }
+    }
+
+    async function checkPythonHealth() {
+      const base = document.getElementById('pythonBase').value.trim().replace(/\/$/, '');
+      const out = document.getElementById('healthOutput');
+      out.textContent = '请求中...';
+      try {
+        const result = await requestJson(base + '/health');
+        out.textContent = 'Python /health\n' + pretty(result);
+      } catch (e) {
+        out.textContent = 'Python 健康检查失败：\n' + e;
+      }
+    }
+
+    async function testDialog() {
+      const base = document.getElementById('javaBase').value.trim().replace(/\/$/, '');
+      const userId = document.getElementById('dialogUserId').value.trim();
+      const bodyText = document.getElementById('dialogBody').value.trim();
+      const out = document.getElementById('dialogOutput');
+      out.textContent = '请求中...';
+      try {
+        const body = JSON.parse(bodyText);
+        const result = await requestJson(base + '/api/v1/dialog/requests?userId=' + encodeURIComponent(userId), {
+          method: 'POST',
+          body: JSON.stringify(body)
+        });
+        out.textContent = pretty(result);
+      } catch (e) {
+        out.textContent = '对话请求失败：\n' + e;
+      }
+    }
+
+    async function testDetect() {
+      const base = document.getElementById('javaBase').value.trim().replace(/\/$/, '');
+      const bodyText = document.getElementById('detectBody').value.trim();
+      const out = document.getElementById('detectOutput');
+      out.textContent = '请求中...';
+      try {
+        const body = JSON.parse(bodyText);
+        const result = await requestJson(base + '/api/v1/detect/tasks', {
+          method: 'POST',
+          body: JSON.stringify(body)
+        });
+        out.textContent = pretty(result);
+      } catch (e) {
+        out.textContent = '检测请求失败：\n' + e;
+      }
+    }
+  </script>
+</body>
+</html>
