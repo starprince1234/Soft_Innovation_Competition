@@ -1,0 +1,37 @@
+# ============================================================
+# 稽古云语 - 公共配置（被所有 profile 继承）
+# ============================================================
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: Asia/Shanghai
+
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: non_null
+
+# SpringDoc / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+# 日志
+logging:
+  level:
+    root: INFO
+    com.jigu.cloud: DEBUG
+    org.springframework.security: WARN

@@ -1,0 +1,19 @@
+ARG JRE_ALPINE_BASE_IMAGE=eclipse-temurin:17-jre-alpine
+FROM ${JRE_ALPINE_BASE_IMAGE}
+WORKDIR /app
+
+# 安装运行时依赖
+RUN apk add --no-cache curl \
+    && addgroup -S app && adduser -S app -G app
+USER app
+
+# 复制已由宿主机构建的 jar（请先在宿主机执行 mvn package）
+COPY jigu-bootstrap/target/jigu-bootstrap-1.0.0-SNAPSHOT.jar /app/app.jar
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=45s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8080/api/v1/health || exit 1
+
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8 -Djava.security.egd=file:/dev/./urandom"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
