@@ -1,0 +1,136 @@
+.help-page.data-v-5194e907 {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF8F0 0%, #FAF0E6 100%);
+}
+.help-page .help-header.data-v-5194e907 {
+  padding: calc(var(--status-bar-height) + 32rpx) 32rpx 32rpx;
+  background: linear-gradient(135deg, #8B4513 0%, #65320F 100%);
+  border-radius: 0 0 48rpx 48rpx;
+  position: relative;
+}
+.help-page .help-header.data-v-5194e907::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, transparent, #DAA520, transparent);
+}
+.help-page .help-header .header-title.data-v-5194e907 {
+  font-size: 40rpx;
+  color: #FFF8DC;
+  font-weight: 600;
+  text-align: center;
+  font-family: "PingFang SC", "Hiragino Sans GB", serif;
+}
+.help-page .help-content.data-v-5194e907 {
+  padding: 32rpx;
+}
+.help-page .help-content .help-search.data-v-5194e907 {
+  margin-bottom: 32rpx;
+}
+.help-page .help-content .help-search .search-box.data-v-5194e907 {
+  display: flex;
+  align-items: center;
+  background: #FFF8DC;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  height: 80rpx;
+  box-shadow: 0 4rpx 12rpx rgba(139, 69, 19, 0.1);
+  border: 2rpx solid #D2B48C;
+}
+.help-page .help-content .help-search .search-box .search-icon.data-v-5194e907 {
+  font-size: 32rpx;
+  margin-right: 16rpx;
+  color: #8B7355;
+}
+.help-page .help-content .help-search .search-box .search-input.data-v-5194e907 {
+  flex: 1;
+  height: 100%;
+  font-size: 24rpx;
+  color: #5D4037;
+  background: transparent;
+}
+.help-page .help-content .help-section.data-v-5194e907 {
+  background: #FFF8DC;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(139, 69, 19, 0.1);
+  border: 2rpx solid #D2B48C;
+}
+.help-page .help-content .help-section .section-title.data-v-5194e907 {
+  font-size: 28rpx;
+  color: #5D4037;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+}
+.help-page .help-content .help-section .faq-list .faq-item.data-v-5194e907 {
+  margin-bottom: 16rpx;
+}
+.help-page .help-content .help-section .faq-list .faq-item .faq-question.data-v-5194e907 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #D2B48C;
+  cursor: pointer;
+}
+.help-page .help-content .help-section .faq-list .faq-item .faq-question .question-text.data-v-5194e907 {
+  font-size: 24rpx;
+  color: #5D4037;
+  flex: 1;
+}
+.help-page .help-content .help-section .faq-list .faq-item .faq-question .faq-arrow.data-v-5194e907 {
+  font-size: 20rpx;
+  color: #8B7355;
+}
+.help-page .help-content .help-section .faq-list .faq-item .faq-answer.data-v-5194e907 {
+  padding: 20rpx 0;
+}
+.help-page .help-content .help-section .faq-list .faq-item .faq-answer .answer-text.data-v-5194e907 {
+  font-size: 22rpx;
+  color: #8B7355;
+  line-height: 1.5;
+}
+.help-page .help-content .help-section .guide-list .guide-item.data-v-5194e907 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #D2B48C;
+  cursor: pointer;
+}
+.help-page .help-content .help-section .guide-list .guide-item.data-v-5194e907:last-child {
+  border-bottom: none;
+}
+.help-page .help-content .help-section .guide-list .guide-item .guide-icon.data-v-5194e907 {
+  font-size: 32rpx;
+  margin-right: 20rpx;
+}
+.help-page .help-content .help-section .guide-list .guide-item .guide-text.data-v-5194e907 {
+  flex: 1;
+  font-size: 24rpx;
+  color: #5D4037;
+}
+.help-page .help-content .help-section .guide-list .guide-item .guide-arrow.data-v-5194e907 {
+  font-size: 40rpx;
+  color: #D2B48C;
+}
+.help-page .help-content .help-section .contact-section .contact-item.data-v-5194e907 {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+.help-page .help-content .help-section .contact-section .contact-item.data-v-5194e907:last-child {
+  margin-bottom: 0;
+}
+.help-page .help-content .help-section .contact-section .contact-item .contact-icon.data-v-5194e907 {
+  font-size: 32rpx;
+  margin-right: 20rpx;
+}
+.help-page .help-content .help-section .contact-section .contact-item .contact-text.data-v-5194e907 {
+  font-size: 24rpx;
+  color: #8B7355;
+}

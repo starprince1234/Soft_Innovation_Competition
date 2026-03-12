@@ -1,0 +1,84 @@
+<view class="result-page">
+  <view class="page-header">
+    <view class="back-btn" bindtap="handleBack">
+      <text class="back-icon">←</text>
+    </view>
+    <text class="page-title">识别结果</text>
+    <view class="placeholder"></view>
+  </view>
+
+  <view class="result-content">
+    <view class="result-card" wx:if="{{ artifact }}">
+      <view class="artifact-image">
+        <image class="image" src="{{ artifact.imageUrl }}" mode="aspectFill" bindtap="previewImage"></image>
+        <view class="confidence-badge">
+          <text class="confidence-text">置信度: {{ artifact.confidence }}%</text>
+        </view>
+      </view>
+
+      <view class="artifact-info">
+        <view class="info-header">
+          <text class="artifact-name">{{ artifact.name }}</text>
+          <view class="artifact-tags">
+            <text class="tag" wx:for="{{ artifact.tags }}" wx:key="index">{{ item }}</text>
+          </view>
+        </view>
+
+        <view class="info-section">
+          <text class="section-title">基本信息</text>
+          <view class="info-grid">
+            <view class="info-item">
+              <text class="info-label">年代</text>
+              <text class="info-value">{{ artifact.period || '未知' }}</text>
+            </view>
+            <view class="info-item">
+              <text class="info-label">材质</text>
+              <text class="info-value">{{ artifact.material || '未知' }}</text>
+            </view>
+            <view class="info-item">
+              <text class="info-label">尺寸</text>
+              <text class="info-value">{{ artifact.size || '未知' }}</text>
+            </view>
+            <view class="info-item">
+              <text class="info-label">出土地</text>
+              <text class="info-value">{{ artifact.location || '未知' }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="info-section" wx:if="{{ artifact.description }}">
+          <text class="section-title">文物简介</text>
+          <text class="description-text">{{ artifact.description }}</text>
+        </view>
+
+        <view class="info-section" wx:if="{{ artifact.historicalSignificance }}">
+          <text class="section-title">历史意义</text>
+          <text class="description-text">{{ artifact.historicalSignificance }}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>
+      <image class="empty-icon" src="/static/images/empty-result.png"></image>
+      <text class="empty-text">暂无识别结果</text>
+    </view>
+
+    <view class="action-buttons" wx:if="{{ artifact }}">
+      <button class="action-btn secondary" bindtap="handleAskAI">
+        <text class="btn-icon">🤖</text>
+        <text class="btn-text">向AI提问</text>
+      </button>
+      <button class="action-btn primary" bindtap="handleShare">
+        <text class="btn-icon">📤</text>
+        <text class="btn-text">分享</text>
+      </button>
+    </view>
+  </view>
+
+  <view class="loading-overlay" wx:if="{{ loading }}">
+    <view class="loading-content">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+  </view>
+</view>

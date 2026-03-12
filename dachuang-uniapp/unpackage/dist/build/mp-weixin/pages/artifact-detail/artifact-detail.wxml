@@ -1,0 +1,111 @@
+<view class="artifact-detail-page">
+  <view class="page-header">
+    <view class="back-button" bindtap="handleBack">
+      <text class="back-icon">←</text>
+    </view>
+    <text class="page-title">文物详情</text>
+    <view class="placeholder"></view>
+  </view>
+
+  <scroll-view class="detail-content" scroll-y="true">
+    <view class="detail-card" wx:if="{{artifact}}">
+      <view class="image-section">
+        <swiper class="image-swiper" indicator-dots="true" autoplay="false">
+          <swiper-item wx:for="{{artifact.images}}" wx:key="index">
+            <image class="detail-image" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-index="{{index}}"></image>
+          </swiper-item>
+        </swiper>
+      </view>
+
+      <view class="info-section">
+        <view class="artifact-header">
+          <text class="artifact-name">{{artifact.name}}</text>
+          <view class="status-badge" style="background-color: {{getStatusColor(artifact.status)}}">
+            <text class="status-text">{{getStatusText(artifact.status)}}</text>
+          </view>
+        </view>
+
+        <view class="artifact-tags" wx:if="{{artifact.tags && artifact.tags.length > 0}}">
+          <text class="tag" wx:for="{{artifact.tags}}" wx:key="index">{{item}}</text>
+        </view>
+
+        <view class="basic-info">
+          <view class="info-row">
+            <text class="info-label">年代</text>
+            <text class="info-value">{{artifact.period || '未知'}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">材质</text>
+            <text class="info-value">{{artifact.material || '未知'}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">尺寸</text>
+            <text class="info-value">{{artifact.size || '未知'}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">重量</text>
+            <text class="info-value">{{artifact.weight || '未知'}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">出土地</text>
+            <text class="info-value">{{artifact.location || '未知'}}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">收藏单位</text>
+            <text class="info-value">{{artifact.museum || '未知'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="description-section" wx:if="{{artifact.description}}">
+        <view class="section-title">文物简介</view>
+        <text class="description-text">{{artifact.description}}</text>
+      </view>
+
+      <view class="history-section" wx:if="{{artifact.historicalSignificance}}">
+        <view class="section-title">历史意义</view>
+        <text class="description-text">{{artifact.historicalSignificance}}</text>
+      </view>
+
+      <view class="craft-section" wx:if="{{artifact.craftsmanship}}">
+        <view class="section-title">工艺特点</view>
+        <text class="description-text">{{artifact.craftsmanship}}</text>
+      </view>
+
+      <view class="related-section" wx:if="{{relatedArtifacts.length > 0}}">
+        <view class="section-title">相关文物</view>
+        <scroll-view class="related-scroll" scroll-x="true">
+          <view class="related-list">
+            <view class="related-item" wx:for="{{relatedArtifacts}}" wx:key="index" bindtap="goToDetail" data-id="{{item.id}}">
+              <image class="related-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+              <text class="related-name">{{item.name}}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
+    <view class="empty-state" wx:else>
+      <image class="empty-image" src="/static/images/empty.png"></image>
+      <text class="empty-text">暂无数据</text>
+    </view>
+  </scroll-view>
+
+  <view class="action-bar" wx:if="{{artifact}}">
+    <button class="action-btn secondary" bindtap="handleAskAI">
+      <text class="btn-icon">🤖</text>
+      <text class="btn-text">AI问答</text>
+    </button>
+    <button class="action-btn primary" bindtap="handleShare">
+      <text class="btn-icon">📤</text>
+      <text class="btn-text">分享</text>
+    </button>
+  </view>
+
+  <view class="loading-overlay" wx:if="{{loading}}">
+    <view class="loading-content">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+  </view>
+</view>
