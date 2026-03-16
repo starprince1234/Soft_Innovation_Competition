@@ -125,7 +125,14 @@ docker build -t jigu-java:0.1.0 -f docker/java/Dockerfile .
 
 # 构建 Python 镜像（在 JiGuYunYu_Python 目录）
 cd ../JiGuYunYu_Python
-docker build -t jigu-python:0.1.0 .
+DOCKER_BUILDKIT=1 docker build -t jigu-python:0.1.0 .
+
+# 如需最大化复用 pip 下载缓存（推荐）
+docker buildx build \
+  --load \
+  --cache-from=type=local,src=.docker-buildx-cache \
+  --cache-to=type=local,dest=.docker-buildx-cache,mode=max \
+  -t jigu-python:0.1.0 .
 ```
 
 ### 3.2 打 Tag 并推送到 DockerHub

@@ -100,8 +100,18 @@ python scripts/smoke_test.py
 ## Docker
 
 ```bash
-docker build -t jiguyunyu .
+DOCKER_BUILDKIT=1 docker build -t jiguyunyu .
 docker run -p 8000:8000 --env-file .env jiguyunyu
+```
+
+若希望跨多次构建持续复用依赖下载缓存（依赖不变则几乎不重新下载），推荐：
+
+```bash
+docker buildx build \
+  --load \
+  --cache-from=type=local,src=.docker-buildx-cache \
+  --cache-to=type=local,dest=.docker-buildx-cache,mode=max \
+  -t jiguyunyu .
 ```
 
 生产环境可通过 `UVICORN_WORKERS` 环境变量控制 worker 数量。

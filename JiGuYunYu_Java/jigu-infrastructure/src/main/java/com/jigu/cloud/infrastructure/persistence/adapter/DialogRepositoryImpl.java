@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,17 +36,32 @@ public class DialogRepositoryImpl implements DialogRepository {
     @Override
     public List<Dialog> findByUserId(Long userId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
-        return jpaRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable).getContent();
+        return jpaRepository.findLatestConversationDialogsByUserId(userId, pageable).getContent();
     }
 
     @Override
     public long countByUserId(Long userId) {
-        return jpaRepository.countByUserId(userId);
+        return jpaRepository.countDistinctConversationsByUserId(userId);
     }
 
     @Override
     public int findMaxTurnIdByUserId(Long userId) {
         return jpaRepository.findMaxTurnIdByUserId(userId);
+    }
+
+    @Override
+    public int findMaxTurnIdByUserIdAndConversationId(Long userId, Long conversationId) {
+        return jpaRepository.findMaxTurnIdByUserIdAndConversationId(userId, conversationId);
+    }
+
+    @Override
+    public long findMaxConversationIdByUserId(Long userId) {
+        return jpaRepository.findMaxConversationIdByUserId(userId);
+    }
+
+    @Override
+    public List<Dialog> findByUserIdAndConversationId(Long userId, Long conversationId) {
+        return jpaRepository.findByUserIdAndConversationIdOrderByCreatedAtAsc(userId, conversationId);
     }
 
     @Override
@@ -68,6 +84,12 @@ public class DialogRepositoryImpl implements DialogRepository {
     }
 
     @Override
+    public List<Dialog> findByCreatedAfter(LocalDateTime since, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        return jpaRepository.findByCreatedAtAfterOrderByCreatedAtDesc(since, pageable).getContent();
+    }
+
+    @Override
     public long count() {
         return jpaRepository.count();
     }
@@ -81,5 +103,10 @@ public class DialogRepositoryImpl implements DialogRepository {
     @Override
     public long countByTeamId(Long teamId) {
         return jpaRepository.countByTeamId(teamId);
+    }
+
+    @Override
+    public long countByCreatedAfter(LocalDateTime since) {
+        return jpaRepository.countByCreatedAtAfter(since);
     }
 }

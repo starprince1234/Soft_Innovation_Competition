@@ -32,10 +32,8 @@ class AuthRepository private constructor(context: Context) {
     }
 
     fun saveSession(username: String, token: String, roleStrings: List<String>) {
-        // 将字符串列表转换为第一个匹配的 UserRole 枚举，默认 PUBLIC
-        val role = roleStrings.mapNotNull {
-            try { UserRole.valueOf(it) } catch (e: Exception) { null }
-        }.firstOrNull() ?: UserRole.PUBLIC
+        // 兼容后端可能返回 ROLE_MANAGER / manager / MANAGER 等写法
+        val role = roleStrings.mapNotNull { toUserRoleOrNull(it) }.firstOrNull() ?: UserRole.PUBLIC
 
         prefs.edit {
             putString("token", token)
@@ -66,6 +64,16 @@ class AuthRepository private constructor(context: Context) {
     }
 
     companion object {
+        private fun toUserRoleOrNull(raw: String?): UserRole? {
+            if (raw.isNullOrBlank()) return null
+            val normalized = raw.trim().uppercase().removePrefix("ROLE_")
+            return try {
+                UserRole.valueOf(normalized)
+            } catch (_: Exception) {
+                null
+            }
+        }
+
         @Volatile
         private var instance: AuthRepository? = null
         fun getInstance(context: Context): AuthRepository = instance ?: synchronized(this) {

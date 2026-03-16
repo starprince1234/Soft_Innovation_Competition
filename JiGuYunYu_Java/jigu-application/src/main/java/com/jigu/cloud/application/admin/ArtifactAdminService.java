@@ -9,11 +9,13 @@ import com.jigu.cloud.domain.user.UserRepository;
 import com.jigu.cloud.infrastructure.python.PythonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 /**
@@ -68,12 +70,36 @@ public class ArtifactAdminService {
      */
     @Transactional
     public Artifact createArtifact(Artifact artifact) {
-        if (artifactRepository.existsByName(artifact.getName())) {
+        String resolvedName = resolveAvailableArtifactName(artifact.getName());
+        artifact.setName(resolvedName);
+
+        try {
+            artifact = artifactRepository.save(artifact);
+        } catch (DataIntegrityViolationException ex) {
             throw new BizException(ErrorCode.ARTIFACT_NAME_EXISTS);
         }
-        artifact = artifactRepository.save(artifact);
+        if ("APPROVED".equalsIgnoreCase(artifact.getStatus())) {
+            triggerVectorUpsert(artifact);
+        }
         log.info("Artifact created: id={}, name={}", artifact.getId(), artifact.getName());
         return artifact;
+    }
+
+    private String resolveAvailableArtifactName(String originName) {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            String candidateName = attempt == 0
+                    ? originName
+                    : buildDedupName(originName, attempt);
+            if (!artifactRepository.existsByNameIncludingDeleted(candidateName)) {
+                return candidateName;
+            }
+        }
+        throw new BizException(ErrorCode.ARTIFACT_NAME_EXISTS);
+    }
+
+    private String buildDedupName(String originName, int attempt) {
+        String suffix = LocalDateTime.now().toLocalTime().toString().replace(":", "").replace(".", "");
+        return originName + "-" + suffix + "-" + attempt;
     }
 
     /**

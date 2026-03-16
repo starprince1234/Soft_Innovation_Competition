@@ -20,6 +20,9 @@ public class Dialog {
     @Column(name = "artifact_id")
     private Long artifactId;
 
+    @Column(name = "conversation_id")
+    private Long conversationId;
+
     @Column(name = "turn_id", nullable = false)
     private Integer turnId;
 
@@ -44,9 +47,10 @@ public class Dialog {
     protected Dialog() {
     }
 
-    public Dialog(Long userId, Long artifactId, Integer turnId, String userQuery, String aiResponse) {
+    public Dialog(Long userId, Long artifactId, Long conversationId, Integer turnId, String userQuery, String aiResponse) {
         this.userId = userId;
         this.artifactId = artifactId;
+        this.conversationId = conversationId;
         this.turnId = turnId;
         this.userQuery = userQuery;
         this.aiResponse = aiResponse;
@@ -67,6 +71,9 @@ public class Dialog {
 
     public Long getArtifactId() { return artifactId; }
     public void setArtifactId(Long artifactId) { this.artifactId = artifactId; }
+
+    public Long getConversationId() { return conversationId; }
+    public void setConversationId(Long conversationId) { this.conversationId = conversationId; }
 
     public Integer getTurnId() { return turnId; }
     public void setTurnId(Integer turnId) { this.turnId = turnId; }

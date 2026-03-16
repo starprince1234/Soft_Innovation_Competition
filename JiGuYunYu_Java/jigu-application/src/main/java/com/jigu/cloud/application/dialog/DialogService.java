@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -45,12 +47,18 @@ public class DialogService {
      */
     @Transactional
     public Dialog createDialog(Long userId, String userRole, String userQuery, Long artifactId,
+                       Long requestedConversationId,
                                List<DialogInternalRequest.ContextTurn> contextHistory) {
-        // 获取下一轮 turnId
-        int nextTurn = dialogRepository.findMaxTurnIdByUserId(userId) + 1;
+        // 会话维度：若前端未指定则自动创建新会话
+        long conversationId = requestedConversationId != null
+            ? requestedConversationId
+            : dialogRepository.findMaxConversationIdByUserId(userId) + 1;
+
+        // 会话内轮次
+        int nextTurn = dialogRepository.findMaxTurnIdByUserIdAndConversationId(userId, conversationId) + 1;
 
         // 构建对话任务 ID
-        String dialogTaskId = "dialog_" + userId + "_" + nextTurn + "_" + System.currentTimeMillis();
+        String dialogTaskId = "dialog_" + userId + "_" + conversationId + "_" + nextTurn + "_" + System.currentTimeMillis();
 
         // 调用 Python 对话接口（传递所有必要字段）
         DialogInternalRequest request = new DialogInternalRequest(
@@ -65,8 +73,12 @@ public class DialogService {
         );
         DialogInternalResponse response = pythonClient.dialog(request);
 
+        if (response == null || response.answer() == null) {
+            throw new BizException(ErrorCode.PYTHON_SERVICE_UNAVAILABLE, "Python 对话服务返回空结果");
+        }
+
         // 保存对话记录
-        Dialog dialog = new Dialog(userId, artifactId, nextTurn, userQuery, response.answer());
+        Dialog dialog = new Dialog(userId, artifactId, conversationId, nextTurn, userQuery, response.answer());
 
         // ---- rag_sources：结构化 JSON 存储 ----
         if (response.sources() != null && !response.sources().isEmpty()) {
@@ -104,10 +116,30 @@ public class DialogService {
 
         dialog = dialogRepository.save(dialog);
 
-        log.info("Dialog created: id={}, userId={}, turnId={}, model={}, sources={}",
-                dialog.getId(), userId, nextTurn, response.model(),
+        log.info("Dialog created: id={}, userId={}, conversationId={}, turnId={}, model={}, sources={}",
+                dialog.getId(), userId, conversationId, nextTurn, response.model(),
                 response.sources() != null ? response.sources().size() : 0);
         return dialog;
+    }
+
+    public record ContextTurn(String role, String content) {
+    }
+
+    /**
+     * 获取指定会话的上下文（用于历史续聊）。
+     */
+    public List<ContextTurn> getConversationContext(Long userId, Long conversationId) {
+        List<Dialog> dialogs = dialogRepository.findByUserIdAndConversationId(userId, conversationId);
+        List<ContextTurn> turns = new ArrayList<>();
+        for (Dialog d : dialogs) {
+            if (d.getUserQuery() != null && !d.getUserQuery().isBlank()) {
+                turns.add(new ContextTurn("USER", d.getUserQuery()));
+            }
+            if (d.getAiResponse() != null && !d.getAiResponse().isBlank()) {
+                turns.add(new ContextTurn("AI", d.getAiResponse()));
+            }
+        }
+        return turns;
     }
 
     /**
@@ -149,9 +181,17 @@ public class DialogService {
     /**
      * 查询所有对话历史（管理端）。
      */
-    public PageResponse<Dialog> getAllHistory(int page, int size) {
-        List<Dialog> list = dialogRepository.findAll(page, size);
-        long total = dialogRepository.count();
+    public PageResponse<Dialog> getAllHistory(int page, int size, Integer recentHours) {
+        List<Dialog> list;
+        long total;
+        if (recentHours != null && recentHours > 0) {
+            LocalDateTime since = LocalDateTime.now().minusHours(recentHours);
+            list = dialogRepository.findByCreatedAfter(since, page, size);
+            total = dialogRepository.countByCreatedAfter(since);
+        } else {
+            list = dialogRepository.findAll(page, size);
+            total = dialogRepository.count();
+        }
         return PageResponse.of(list, total, page, size);
     }
 

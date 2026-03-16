@@ -24,8 +24,9 @@ public class DialogAdminController {
     @GetMapping("/histories")
     public ApiResponse<PageResponse<DialogResponse>> listAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PageResponse<Dialog> result = dialogService.getAllHistory(page, size);
+            @RequestParam(defaultValue = "200") int size,
+            @RequestParam(defaultValue = "24") int recentHours) {
+        PageResponse<Dialog> result = dialogService.getAllHistory(page, size, recentHours);
         PageResponse<DialogResponse> response = PageResponse.of(
                 result.getList().stream().map(DialogResponse::from).toList(),
                 result.getTotalElements(), result.getCurrentPage(), result.getPageSize());

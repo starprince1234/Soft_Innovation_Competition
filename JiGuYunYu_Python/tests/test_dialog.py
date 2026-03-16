@@ -36,3 +36,75 @@ def test_dialog_missing_query(client):
         headers=AUTH_HEADERS,
     )
     assert r.status_code == 422
+
+
+def test_dialog_name_question_goes_through_llm(client):
+    """名称类问题不走关键字直答，应走 LLM 路径。"""
+    payload = {
+        "dialogTaskId": "d-name-1",
+        "query": "这个文物叫什么名字？",
+        "contextHistory": [
+            {
+                "role": "user",
+                "content": "[识别上下文]\n识别结果文物名称：青铜鼎\n年代：商代\n类别：青铜\n标签：礼器、祭祀\n简介：商代重器。",
+            }
+        ],
+    }
+    r = client.post(
+        "/internal/dialog/responses",
+        json=payload,
+        headers=AUTH_HEADERS,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["code"] == 200
+    assert body["data"]["model"] != "context_grounded"
+    assert body["data"]["answer"]
+
+
+def test_dialog_era_question_goes_through_llm(client):
+    """朝代问题不走关键字直答，应走 LLM 路径。"""
+    payload = {
+        "dialogTaskId": "d-era-1",
+        "query": "这个是哪个朝代的？",
+        "contextHistory": [
+            {
+                "role": "system",
+                "content": "[识别上下文]\nartifact name: Bronze Ding\nera: Shang\ncategory: Bronze\nartifact description: ritual vessel",
+            }
+        ],
+    }
+    r = client.post(
+        "/internal/dialog/responses",
+        json=payload,
+        headers=AUTH_HEADERS,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["code"] == 200
+    assert body["data"]["model"] != "context_grounded"
+    assert body["data"]["answer"]
+
+
+def test_dialog_description_question_goes_through_llm(client):
+    """介绍问题不走关键字直答，应走 LLM 路径。"""
+    payload = {
+        "dialogTaskId": "d-desc-1",
+        "query": "介绍一下这个文物",
+        "contextHistory": [
+            {
+                "role": "SYSTEM",
+                "content": "[识别上下文]\n识别结果文物名称：青铜神树\n简介：古蜀文明代表性青铜祭祀器。",
+            }
+        ],
+    }
+    r = client.post(
+        "/internal/dialog/responses",
+        json=payload,
+        headers=AUTH_HEADERS,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["code"] == 200
+    assert body["data"]["model"] != "context_grounded"
+    assert body["data"]["answer"]

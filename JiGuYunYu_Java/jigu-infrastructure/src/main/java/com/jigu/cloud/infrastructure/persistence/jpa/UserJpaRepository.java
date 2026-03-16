@@ -24,6 +24,15 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
     @Query("SELECT COUNT(u) FROM User u WHERE u.lastLoginAt >= :since")
     long countActiveUsersSince(@Param("since") LocalDateTime since);
 
+    long countByStatus(String status);
+
+    Page<User> findByStatus(String status, Pageable pageable);
+
     @Query("SELECT u FROM User u WHERE u.username LIKE CONCAT('%', :username, '%')")
     Page<User> findByUsernameLike(@Param("username") String username, Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE u.username LIKE CONCAT('%', :username, '%') AND u.status = :status")
+    Page<User> findByUsernameLikeAndStatus(@Param("username") String username,
+                                           @Param("status") String status,
+                                           Pageable pageable);
 }

@@ -162,8 +162,9 @@ public class PythonClient {
             // 解析顶层 InternalResponse 结构
             JsonNode root = objectMapper.readTree(rawBody);
             int code = root.has("code") ? root.get("code").asInt() : 200;
+            boolean success = (code == 200 || code == 0);
 
-            if (code != 200) {
+            if (!success) {
                 String message = root.has("message") ? root.get("message").asText() : "Unknown error";
                 log.error("Python internal API error  path={} code={} message={}", path, code, message);
                 throw new BizException(ErrorCode.PYTHON_SERVICE_UNAVAILABLE,

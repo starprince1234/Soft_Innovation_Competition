@@ -50,15 +50,38 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public List<User> findByStatus(String status, int page, int size, String sortBy, String direction) {
+        PageRequest pageable = PageRequest.of(page, size, buildSort(sortBy, direction));
+        return jpaRepository.findByStatus(status, pageable).getContent();
+    }
+
+    @Override
     public List<User> findByUsernameLike(String username, int page, int size, String sortBy, String direction) {
         PageRequest pageable = PageRequest.of(page, size, buildSort(sortBy, direction));
         return jpaRepository.findByUsernameLike(username, pageable).getContent();
     }
 
     @Override
+    public List<User> findByUsernameLikeAndStatus(String username, String status, int page, int size, String sortBy, String direction) {
+        PageRequest pageable = PageRequest.of(page, size, buildSort(sortBy, direction));
+        return jpaRepository.findByUsernameLikeAndStatus(username, status, pageable).getContent();
+    }
+
+    @Override
     public long countByUsernameLike(String username) {
         PageRequest pageable = PageRequest.of(0, 1);
         return jpaRepository.findByUsernameLike(username, pageable).getTotalElements();
+    }
+
+    @Override
+    public long countByUsernameLikeAndStatus(String username, String status) {
+        PageRequest pageable = PageRequest.of(0, 1);
+        return jpaRepository.findByUsernameLikeAndStatus(username, status, pageable).getTotalElements();
+    }
+
+    @Override
+    public long countByStatus(String status) {
+        return jpaRepository.countByStatus(status);
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jigu.cloud.domain.dialog.Dialog;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
@@ -17,11 +18,14 @@ import java.util.Map;
  */
 public record DialogResponse(
         Long dialogId,
+    Long conversationId,
         Integer turnId,
         String userQuery,
         String aiResponse,
         List<Map<String, Object>> ragSources,
-        LocalDateTime createdAt
+    LocalDateTime createdAt,
+    Long createdAtEpochMs,
+    Long artifactId
 ) {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -29,8 +33,12 @@ public record DialogResponse(
     public static DialogResponse from(Dialog d) {
         List<Map<String, Object>> sources = parseRagSources(d.getRagSources());
         return new DialogResponse(
-                d.getId(), d.getTurnId(), d.getUserQuery(),
-                d.getAiResponse(), sources, d.getCreatedAt()
+            d.getId(), d.getConversationId(), d.getTurnId(), d.getUserQuery(),
+            d.getAiResponse(), sources, d.getCreatedAt(),
+            d.getCreatedAt() != null
+                    ? d.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    : null,
+            d.getArtifactId()
         );
     }
 

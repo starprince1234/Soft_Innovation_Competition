@@ -13,8 +13,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,14 +33,23 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.jiguyunyu.data.AuthRepository
+import com.example.jiguyunyu.data.UserRole
 import com.example.jiguyunyu.ui.navigation.Routes
 import com.example.jiguyunyu.ui.theme.*
+import com.example.jiguyunyu.viewmodel.AdminViewModel
 import com.example.jiguyunyu.viewmodel.DetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(navController: NavController, artifactId: String?, viewModel: DetailViewModel = viewModel()) {
     val id = artifactId?.toLongOrNull()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val authRepo = remember { AuthRepository.getInstance(context) }
+    val user by authRepo.currentUser.collectAsState()
+    val isManager = user?.roles?.contains(UserRole.MANAGER) == true
+    val adminViewModel: AdminViewModel = viewModel()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(id) {
         if (id != null) {
@@ -163,13 +174,22 @@ fun DetailScreen(navController: NavController, artifactId: String?, viewModel: D
                                 }
 
                                 IconButton(
-                                    onClick = { /* 语音播放功能 */ },
+                                    onClick = {
+                                        if (id != null) {
+                                            viewModel.toggleFavorite(id)
+                                        }
+                                    },
                                     modifier = Modifier
                                         .size(56.dp)
                                         .background(Parchment, CircleShape)
                                         .border(1.dp, Bronze.copy(alpha = 0.2f), CircleShape)
                                 ) {
-                                    Icon(Icons.Default.VolumeUp, null, tint = IndigoInk, modifier = Modifier.size(28.dp))
+                                    Icon(
+                                        imageVector = if (viewModel.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = "收藏",
+                                        tint = if (viewModel.isFavorite) CinnabarRed else IndigoInk,
+                                        modifier = Modifier.size(28.dp)
+                                    )
                                 }
                             }
 
@@ -237,8 +257,45 @@ fun DetailScreen(navController: NavController, artifactId: String?, viewModel: D
                     ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", tint = Color.White)
                     }
+
+                    if (isManager && id != null) {
+                        IconButton(
+                            onClick = { showDeleteConfirm = true },
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                .size(44.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, "删除文物", tint = CinnabarRed)
+                        }
+                    }
                 }
             }
+        }
+
+        if (showDeleteConfirm && id != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("确认删除") },
+                text = { Text("删除后将从公众列表中隐藏，该操作不可撤销。") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            adminViewModel.deleteArtifact(id) {
+                                showDeleteConfirm = false
+                                navController.popBackStack()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = CinnabarRed)
+                    ) {
+                        Text("确认删除")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
     }
 }

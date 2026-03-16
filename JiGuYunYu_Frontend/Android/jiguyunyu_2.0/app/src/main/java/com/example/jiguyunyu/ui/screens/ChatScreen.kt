@@ -43,7 +43,13 @@ import com.example.jiguyunyu.viewmodel.ChatViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(navController: NavController, artifactId: String? = null, viewModel: ChatViewModel = viewModel()) {
+fun ChatScreen(
+    navController: NavController,
+    artifactId: String? = null,
+    detectContext: String? = null,
+    conversationId: String? = null,
+    viewModel: ChatViewModel = viewModel()
+) {
     var text by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -53,6 +59,26 @@ fun ChatScreen(navController: NavController, artifactId: String? = null, viewMod
     LaunchedEffect(viewModel.messages.size) {
         if (viewModel.messages.isNotEmpty()) {
             listState.animateScrollToItem(viewModel.messages.size - 1)
+        }
+    }
+
+    LaunchedEffect(detectContext) {
+        if (!detectContext.isNullOrBlank()) {
+            viewModel.seedDetectContext(detectContext)
+        }
+    }
+
+    LaunchedEffect(artifactId) {
+        val aid = artifactId?.toLongOrNull()
+        if (aid != null) {
+            viewModel.seedArtifactContext(aid)
+        }
+    }
+
+    LaunchedEffect(conversationId) {
+        val cid = conversationId?.toLongOrNull()
+        if (cid != null) {
+            viewModel.restoreConversation(cid)
         }
     }
 

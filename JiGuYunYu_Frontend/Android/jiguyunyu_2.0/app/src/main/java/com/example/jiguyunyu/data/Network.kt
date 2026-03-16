@@ -11,12 +11,13 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 // 登录请求体
 data class LoginRequest(val username: String, val password: String)
 
 // 注册请求体
-data class RegisterRequest(val username: String, val password: String, val role: String = "PUBLIC")
+data class RegisterRequest(val username: String, val password: String)
 
 // 登录响应体
 data class LoginResponse(
@@ -44,7 +45,8 @@ interface ApiService {
         @Query("page") page: Int = 0,
         @Query("size") size: Int = 10,
         @Query("name") name: String? = null,
-        @Query("era") era: String? = null
+        @Query("era") era: String? = null,
+        @Query("keyword") keyword: String? = null
     ): ApiResponse<Page<Artifact>>
 
     @GET("api/v1/artifact/{id}")
@@ -52,21 +54,30 @@ interface ApiService {
 
     // --- 检测识别 ---
     @POST("api/v1/detect/tasks")
-    suspend fun createDetectTask(@Header("Authorization") token: String, @Body req: DetectRequest): ApiResponse<TaskResponse>
+    suspend fun createDetectTask(@Header("Authorization") token: String, @Body req: DetectRequest): ApiResponse<DetectResultResponse>
 
     @GET("api/v1/detect/tasks/{taskId}/status")
-    suspend fun getDetectTaskStatus(@Header("Authorization") token: String, @Path("taskId") taskId: String): ApiResponse<DetectResultResponse>
+    suspend fun getDetectTaskStatus(@Header("Authorization") token: String, @Path("taskId") taskId: Long): ApiResponse<DetectResultResponse>
+
+    @GET("api/v1/detect/results/{taskId}")
+    suspend fun getDetectTaskResult(@Header("Authorization") token: String, @Path("taskId") taskId: Long): ApiResponse<DetectResultResponse>
 
     // --- 对话 ---
     @POST("api/v1/dialog/requests")
-    suspend fun createDialogRequest(@Header("Authorization") token: String, @Body req: DialogRequest): ApiResponse<TaskResponse>
+    suspend fun createDialogRequest(@Header("Authorization") token: String, @Body req: DialogRequest): ApiResponse<DialogResultResponse>
 
     @GET("api/v1/dialog/results/{taskId}")
-    suspend fun getDialogResult(@Header("Authorization") token: String, @Path("taskId") taskId: String): ApiResponse<DialogResultResponse>
+    suspend fun getDialogResult(@Header("Authorization") token: String, @Path("taskId") taskId: Long): ApiResponse<DialogResultResponse>
 
     // --- 历史记录 ---
     @GET("api/v1/dialog/histories")
     suspend fun getDialogHistories(@Header("Authorization") token: String, @Query("page") page: Int = 0, @Query("size") size: Int = 10): ApiResponse<Page<DialogHistory>>
+
+    @GET("api/v1/dialog/conversations/{conversationId}/context")
+    suspend fun getDialogConversationContext(
+        @Header("Authorization") token: String,
+        @Path("conversationId") conversationId: Long
+    ): ApiResponse<List<DialogMessage>>
 
     @DELETE("api/v1/dialog/histories")
     suspend fun clearDialogHistories(@Header("Authorization") token: String): ApiResponse<Unit>
@@ -87,7 +98,12 @@ interface ApiService {
     suspend fun updateFeedbackStatus(@Header("Authorization") token: String, @Path("id") id: Long, @Body body: UpdateStatusRequest): ApiResponse<Unit>
 
     @GET("api/v1/admin/users")
-    suspend fun getAdminUsers(@Header("Authorization") token: String, @Query("page") page: Int = 0, @Query("size") size: Int = 10): ApiResponse<Page<AdminUser>>
+    suspend fun getAdminUsers(
+        @Header("Authorization") token: String,
+        @Query("includeInactive") includeInactive: Boolean = true,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 200
+    ): ApiResponse<Page<AdminUser>>
 
     @PUT("api/v1/admin/users/{userId}/status")
     suspend fun updateUserStatus(@Header("Authorization") token: String, @Path("userId") userId: Long, @Body body: UpdateStatusRequest): ApiResponse<Unit>
@@ -97,10 +113,10 @@ interface ApiService {
 
     // --- 管理员：文物管理（新增/编辑/删除）---
     @POST("api/v1/admin/artifacts")
-    suspend fun createArtifact(@Header("Authorization") token: String, @Body request: ArchaeologySubmitRequest): ApiResponse<Artifact>
+    suspend fun createArtifact(@Header("Authorization") token: String, @Body request: AdminArtifactRequest): ApiResponse<Artifact>
 
     @PUT("api/v1/admin/artifacts/{id}")
-    suspend fun updateArtifact(@Header("Authorization") token: String, @Path("id") id: Long, @Body request: ArchaeologySubmitRequest): ApiResponse<Unit>
+    suspend fun updateArtifact(@Header("Authorization") token: String, @Path("id") id: Long, @Body request: AdminArtifactRequest): ApiResponse<Unit>
 
     @DELETE("api/v1/admin/artifacts/{id}")
     suspend fun deleteArtifact(@Header("Authorization") token: String, @Path("id") id: Long): ApiResponse<Unit>
@@ -115,7 +131,14 @@ interface ApiService {
 
     // --- 管理员：查看所有对话历史 ---
     @GET("api/v1/admin/dialog/histories")
-    suspend fun getAllDialogHistories(@Header("Authorization") token: String, @Query("page") page: Int = 0, @Query("size") size: Int = 10, @Query("userId") userId: Long? = null, @Query("artifactId") artifactId: Long? = null): ApiResponse<Page<DialogHistory>>
+    suspend fun getAllDialogHistories(
+        @Header("Authorization") token: String,
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 200,
+        @Query("recentHours") recentHours: Int = 24,
+        @Query("userId") userId: Long? = null,
+        @Query("artifactId") artifactId: Long? = null
+    ): ApiResponse<Page<DialogHistory>>
 
     // --- 管理员：仪表盘概览 ---
     @GET("api/v1/admin/dashboard/overview")
@@ -125,12 +148,14 @@ interface ApiService {
     @PUT("api/v1/users/me/password")
     suspend fun changePassword(@Header("Authorization") token: String, @Body request: ChangePasswordRequest): ApiResponse<Unit>
 
-    @GET("health")
-    suspend fun checkHealth(): ApiResponse<String>
+    @GET("api/v1/health")
+    suspend fun checkHealth(): ApiResponse<Map<String, Any?>>
 }
 
 object NetworkModule {
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    // Cloud production endpoint for real-device testing.
+    private const val BASE_URL = "http://123.58.215.154:28080/"
+    private const val ENABLE_MOCK = false
     var authRepository: AuthRepository? = null
 
     private val authInterceptor = Interceptor { chain ->
@@ -204,16 +229,6 @@ object NetworkModule {
                 """{"code": 200, "message": "OK", "data": ${com.google.gson.Gson().toJson(detail)}}"""
             }
 
-            path.endsWith("/admin/dashboard/overview") -> """
-                {
-                    "code": 200, "message": "success",
-                    "data": {
-                        "totalUsers": 1250, "activeUsersLast24h": 85, "totalArtifacts": 420, "pendingArtifactsForReview": 12,
-                        "totalFeedback": 56, "unresolvedFeedback": 8, "detectionSuccessRate": 0.94, "dialogCountLast24h": 320
-                    }
-                }
-            """.trimIndent()
-
             else -> """{"code": 200, "message": "success", "data": null}"""
         }
 
@@ -223,10 +238,17 @@ object NetworkModule {
             .build()
     }
 
-    private val client = OkHttpClient.Builder()
-        .addInterceptor(mockInterceptor)
-        .addInterceptor(authInterceptor)
-        .build()
+    private val client = OkHttpClient.Builder().apply {
+        // 对话接口可能耗时较长，避免客户端过早超时导致“服务端已成功但前端报网络错”。
+        connectTimeout(20, TimeUnit.SECONDS)
+        readTimeout(180, TimeUnit.SECONDS)
+        writeTimeout(20, TimeUnit.SECONDS)
+        callTimeout(200, TimeUnit.SECONDS)
+        if (ENABLE_MOCK) {
+            addInterceptor(mockInterceptor)
+        }
+        addInterceptor(authInterceptor)
+    }.build()
 
     val api: ApiService by lazy {
         Retrofit.Builder().baseUrl(BASE_URL).client(client).addConverterFactory(GsonConverterFactory.create()).build().create(ApiService::class.java)

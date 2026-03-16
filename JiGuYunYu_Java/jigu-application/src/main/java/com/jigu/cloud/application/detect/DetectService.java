@@ -75,7 +75,7 @@ public class DetectService {
 
             // 调用 Python（同时传递 imageUrl 和 imageBase64）
             DetectProcessResponse response = pythonClient.detectProcess(
-                    new DetectProcessRequest(taskId, imageUrl, imageBase64));
+                    new DetectProcessRequest(String.valueOf(taskId), imageUrl, imageBase64));
 
             // 从 detections 数组中取最优结果
             if (response != null && response.detections() != null && !response.detections().isEmpty()) {
@@ -144,8 +144,18 @@ public class DetectService {
         if (detectedLabel == null || detectedLabel.isBlank()) {
             return null;
         }
-        return artifactRepository.findByName(detectedLabel)
+        Long exact = artifactRepository.findByName(detectedLabel)
                 .filter(a -> "APPROVED".equals(a.getStatus()))
+                .map(Artifact::getId)
+                .orElse(null);
+        if (exact != null) {
+            return exact;
+        }
+
+        return artifactRepository
+                .findByConditions("APPROVED", null, null, null, detectedLabel, 0, 1, "createdAt", "desc")
+                .stream()
+                .findFirst()
                 .map(Artifact::getId)
                 .orElse(null);
     }

@@ -20,7 +20,7 @@ public class PythonProperties {
     private int connectTimeout = 5000;
 
     /** 读取超时（毫秒） */
-    private int readTimeout = 60000;
+    private int readTimeout = 300000;
 
     public String getBaseUrl() { return baseUrl; }
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }

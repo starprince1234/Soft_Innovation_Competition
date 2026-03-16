@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Python 端优先使用 base64 数据，BOS 不可达时仍能正常检测。
  */
 public record DetectProcessRequest(
-        @JsonProperty("task_id") Long taskId,
+        @JsonProperty("task_id") String taskId,
         @JsonProperty("image_url") String imageUrl,
         @JsonProperty("image_base64") String imageBase64
 ) implements PythonRequest {

@@ -20,13 +20,18 @@ CREATE TABLE IF NOT EXISTS artifacts (
   era VARCHAR(255) NULL,
   creator_id BIGINT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'APPROVED',
+  is_deleted TINYINT(1) NOT NULL DEFAULT 0,
   vector_embedding_id VARCHAR(255) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_artifacts_status (status),
+  INDEX idx_artifacts_deleted (is_deleted),
   INDEX idx_artifacts_era (era),
   INDEX idx_artifacts_creator (creator_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE artifacts ADD INDEX IF NOT EXISTS idx_artifacts_deleted (is_deleted);
 
 CREATE TABLE IF NOT EXISTS detection_tasks (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -48,6 +53,7 @@ CREATE TABLE IF NOT EXISTS dialog_records (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT NOT NULL,
   artifact_id BIGINT NULL,
+  conversation_id BIGINT NULL,
   turn_id INT NOT NULL,
   user_query TEXT NOT NULL,
   ai_response TEXT NOT NULL,
@@ -56,6 +62,7 @@ CREATE TABLE IF NOT EXISTS dialog_records (
   team_id BIGINT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_dialog_user (user_id),
+  INDEX idx_dialog_conversation (user_id, conversation_id),
   INDEX idx_dialog_artifact (artifact_id),
   INDEX idx_dialog_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

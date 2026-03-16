@@ -29,16 +29,31 @@ public class UserAdminService {
     /**
      * 分页查询用户列表（支持用户名模糊搜索）。
      */
-    public PageResponse<User> listUsers(String username, int page, int size,
-                                          String sortBy, String direction) {
+    public PageResponse<User> listUsers(String username,
+                                        boolean includeInactive,
+                                        int page,
+                                        int size,
+                                        String sortBy,
+                                        String direction) {
         List<User> list;
         long total;
+        boolean activeOnly = !includeInactive;
         if (username != null && !username.isBlank()) {
-            list = userRepository.findByUsernameLike(username, page, size, sortBy, direction);
-            total = userRepository.countByUsernameLike(username);
+            if (activeOnly) {
+                list = userRepository.findByUsernameLikeAndStatus(username, "ACTIVE", page, size, sortBy, direction);
+                total = userRepository.countByUsernameLikeAndStatus(username, "ACTIVE");
+            } else {
+                list = userRepository.findByUsernameLike(username, page, size, sortBy, direction);
+                total = userRepository.countByUsernameLike(username);
+            }
         } else {
-            list = userRepository.findAll(page, size, sortBy, direction);
-            total = userRepository.count();
+            if (activeOnly) {
+                list = userRepository.findByStatus("ACTIVE", page, size, sortBy, direction);
+                total = userRepository.countByStatus("ACTIVE");
+            } else {
+                list = userRepository.findAll(page, size, sortBy, direction);
+                total = userRepository.count();
+            }
         }
         return PageResponse.of(list, total, page, size);
     }

@@ -28,6 +28,11 @@ import androidx.navigation.NavController
 import com.example.jiguyunyu.ui.navigation.Routes
 import com.example.jiguyunyu.ui.theme.*
 import com.example.jiguyunyu.viewmodel.HistoryViewModel
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,7 +116,12 @@ fun HistoryCard(item: com.example.jiguyunyu.data.DialogHistory, navController: N
             .padding(bottom = 16.dp)
             .clickable {
                 // 点击历史记录跳转到对话页面
-                navController.navigate(Routes.chat(item.artifactId))
+                navController.navigate(
+                    Routes.chat(
+                        artifactId = item.artifactId,
+                        conversationId = item.conversationId
+                    )
+                )
             },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -130,7 +140,7 @@ fun HistoryCard(item: com.example.jiguyunyu.data.DialogHistory, navController: N
                     Icon(Icons.Outlined.ChatBubbleOutline, null, tint = Bronze, modifier = Modifier.size(14.dp))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(item.createdAt, fontSize = 12.sp, color = Color.Gray)
+                Text(formatHistoryTime(item), fontSize = 12.sp, color = Color.Gray)
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -182,5 +192,28 @@ fun HistoryCard(item: com.example.jiguyunyu.data.DialogHistory, navController: N
                 )
             }
         }
+    }
+}
+
+private fun formatHistoryTime(item: com.example.jiguyunyu.data.DialogHistory): String {
+    val deviceZone = ZoneId.systemDefault()
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+    item.createdAtEpochMs?.let { epoch ->
+        return Instant.ofEpochMilli(epoch).atZone(deviceZone).format(formatter)
+    }
+
+    return runCatching {
+        OffsetDateTime.parse(item.createdAt)
+            .toInstant()
+            .atZone(deviceZone)
+            .format(formatter)
+    }.recoverCatching {
+        LocalDateTime.parse(item.createdAt)
+            .atZone(ZoneId.of("UTC"))
+            .withZoneSameInstant(deviceZone)
+            .format(formatter)
+    }.getOrElse {
+        item.createdAt
     }
 }

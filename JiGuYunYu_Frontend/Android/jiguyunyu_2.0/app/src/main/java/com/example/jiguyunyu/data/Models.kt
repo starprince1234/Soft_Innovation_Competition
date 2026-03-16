@@ -29,9 +29,9 @@ data class User(
 data class Artifact(
     val id: Long,
     val name: String,
-    val era: String,
-    val category: String,
-    val imageUrl: String,
+    val era: String = "",
+    val category: String = "其他",
+    val imageUrl: String = "",
     val description: String = "",
     val location: String = "",
     val tags: List<String> = emptyList()
@@ -85,13 +85,16 @@ data class Page<T>(
 
 // 对话历史列表项
 data class DialogHistory(
+    @SerializedName("dialogId", alternate = ["id"])
     val id: Long,
+    val conversationId: Long? = null,
     val turnId: Int,
     val userQuery: String,
     val aiResponse: String,
     val createdAt: String,
-    val artifactId: Long?,
-    val artifactName: String?
+    val createdAtEpochMs: Long? = null,
+    val artifactId: Long? = null,
+    val artifactName: String? = null
 )
 
 // 反馈请求
@@ -108,14 +111,14 @@ data class FeedbackResponse(val feedbackId: Long)
 // 管理端反馈列表项
 data class AdminFeedback(
     val id: Long,
-    val userId: Long,
-    val username: String,
+    val userId: Long? = null,
+    val username: String? = null,
     val type: String,
     val textContent: String,
     val rating: Int?,
-    val screenshotUrl: String?,
+    val screenshotUrl: String? = null,
     val status: String, // PENDING, RESOLVED
-    val createdAt: String
+    val createdAt: String = ""
 )
 
 // 考古录入请求
@@ -126,6 +129,18 @@ data class ArchaeologySubmitRequest(
     val location: String,
     val era: String,
     val tags: List<String>
+)
+
+data class AdminArtifactRequest(
+    val name: String,
+    val description: String,
+    val imageUrl: String? = null,
+    val imageBase64: String? = null,
+    val thumbnailUrl: String? = null,
+    val tags: String? = null,
+    val location: String? = null,
+    val era: String? = null,
+    val status: String? = null
 )
 
 // 管理端用户列表项
@@ -141,11 +156,18 @@ data class AdminUser(
 
 data class DetectRequest(val imageBase64: String)
 
-data class TaskResponse(val taskId: String)
+data class DetectArtifactItem(
+    val label: String,
+    val confidence: Float? = null,
+    val bbox: List<Float>? = null,
+    val artifactId: Long? = null
+)
 
 data class DetectResultResponse(
-    val status: String, // PROCESSING, COMPLETED, FAILED
-    val result: DetectionResult?
+    val taskId: Long,
+    val status: String, // PENDING, PROCESSING, COMPLETED, FAILED
+    val imageUrl: String? = null,
+    val detectedArtifacts: List<DetectArtifactItem>? = null
 )
 
 data class DialogMessage(
@@ -156,13 +178,19 @@ data class DialogMessage(
 data class DialogRequest(
     val query: String,
     val artifactId: Long? = null,
+    val conversationId: Long? = null,
     val contextHistory: List<DialogMessage> = emptyList()
 )
 
 data class DialogResultResponse(
-    val status: String,
-    val reply: String?,
-    val ragSources: List<RagSource>? = null // 添加可选字段
+    val dialogId: Long,
+    val conversationId: Long? = null,
+    val turnId: Int,
+    val userQuery: String,
+    val aiResponse: String,
+    val ragSources: List<Map<String, Any>>? = null,
+    val createdAt: String,
+    val createdAtEpochMs: Long? = null
 )
 
 // --- 新增：通用状态更新模型 ---
@@ -184,6 +212,32 @@ data class DashboardOverview(
     val detectionSuccessRate: Double,
     val dialogCountLast24h: Long
 )
+
+object ArtifactCategoryCatalog {
+    val fallback = listOf("青铜", "书画", "玉器", "陶器")
+
+    fun allWithAllOption(categories: List<String>): List<String> {
+        return listOf("全部") + fallback
+    }
+
+    fun deriveFromArtifacts(artifacts: List<Artifact>): List<String> {
+        val fromCategory = artifacts.mapNotNull { normalize(it.category) }
+        val fromTags = artifacts.flatMap { it.tags }.mapNotNull { normalize(it) }
+        return (fromCategory + fromTags).distinct()
+    }
+
+    fun normalize(raw: String?): String? {
+        val value = raw?.trim().orEmpty()
+        if (value.isBlank() || value == "全部") return null
+        return when {
+            value.contains("青铜") -> "青铜"
+            value.contains("书") || value.contains("画") -> "书画"
+            value.contains("玉") -> "玉器"
+            value.contains("陶") -> "陶器"
+            else -> null
+        }
+    }
+}
 
 // 修改密码请求体
 data class ChangePasswordRequest(

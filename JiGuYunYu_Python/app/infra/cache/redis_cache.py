@@ -109,43 +109,73 @@ class RedisCache:
     # ---- 对话缓存（便捷方法）----
 
     @staticmethod
-    def dialog_cache_key(query: str, artifact_id: Optional[int] = None) -> str:
+    def dialog_cache_key(
+        query: str,
+        artifact_id: Optional[int] = None,
+        context_fingerprint: Optional[str] = None,
+    ) -> str:
         """生成对话缓存 key：jigu:dialog:{hash}"""
-        raw = f"{query}|{artifact_id or ''}"
+        raw = f"{query}|{artifact_id or ''}|{context_fingerprint or ''}"
         h = hashlib.md5(raw.encode("utf-8")).hexdigest()[:16]
         return f"jigu:dialog:{h}"
 
-    async def get_dialog(self, query: str, artifact_id: Optional[int] = None) -> Optional[dict]:
+    async def get_dialog(
+        self,
+        query: str,
+        artifact_id: Optional[int] = None,
+        context_fingerprint: Optional[str] = None,
+    ) -> Optional[dict]:
         """获取对话缓存"""
-        key = self.dialog_cache_key(query, artifact_id)
+        key = self.dialog_cache_key(query, artifact_id, context_fingerprint)
         return await self.get(key)
 
     async def set_dialog(
-        self, query: str, result: dict, artifact_id: Optional[int] = None, *, ex: int = 600
+        self,
+        query: str,
+        result: dict,
+        artifact_id: Optional[int] = None,
+        context_fingerprint: Optional[str] = None,
+        *,
+        ex: int = 600,
     ) -> bool:
         """缓存对话结果，默认 10 分钟过期"""
-        key = self.dialog_cache_key(query, artifact_id)
+        key = self.dialog_cache_key(query, artifact_id, context_fingerprint)
         return await self.set(key, result, ex=ex)
 
     # ---- 千帆检索缓存（search 级别）----
 
     @staticmethod
-    def search_cache_key(query: str, artifact_id: Optional[int] = None) -> str:
+    def search_cache_key(
+        query: str,
+        artifact_id: Optional[int] = None,
+        context_fingerprint: Optional[str] = None,
+    ) -> str:
         """生成检索缓存 key：jigu:search:{hash}"""
-        raw = f"search|{query}|{artifact_id or ''}"
+        raw = f"search|{query}|{artifact_id or ''}|{context_fingerprint or ''}"
         h = hashlib.md5(raw.encode("utf-8")).hexdigest()[:16]
         return f"jigu:search:{h}"
 
-    async def get_search(self, query: str, artifact_id: Optional[int] = None) -> Optional[dict]:
+    async def get_search(
+        self,
+        query: str,
+        artifact_id: Optional[int] = None,
+        context_fingerprint: Optional[str] = None,
+    ) -> Optional[dict]:
         """获取检索缓存（千帆 web_summary 网页检索结果）"""
-        key = self.search_cache_key(query, artifact_id)
+        key = self.search_cache_key(query, artifact_id, context_fingerprint)
         return await self.get(key)
 
     async def set_search(
-        self, query: str, result: dict, artifact_id: Optional[int] = None, *, ex: int = 1800
+        self,
+        query: str,
+        result: dict,
+        artifact_id: Optional[int] = None,
+        context_fingerprint: Optional[str] = None,
+        *,
+        ex: int = 1800,
     ) -> bool:
         """缓存检索结果，默认 30 分钟过期（检索结果变化慢于对话结果）"""
-        key = self.search_cache_key(query, artifact_id)
+        key = self.search_cache_key(query, artifact_id, context_fingerprint)
         return await self.set(key, result, ex=ex)
 
     # ---- 健康检查 ----

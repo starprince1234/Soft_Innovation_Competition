@@ -43,6 +43,9 @@ public class Artifact {
     @Column(nullable = false, length = 20)
     private String status;
 
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted;
+
     @Column(name = "vector_embedding_id")
     private String vectorEmbeddingId;
 
@@ -61,6 +64,7 @@ public class Artifact {
         this.createdAt = now;
         this.updatedAt = now;
         if (this.status == null) this.status = "APPROVED";
+        this.deleted = false;
     }
 
     @PreUpdate
@@ -99,6 +103,9 @@ public class Artifact {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public boolean isDeleted() { return deleted; }
+    public void setDeleted(boolean deleted) { this.deleted = deleted; }
 
     public String getVectorEmbeddingId() { return vectorEmbeddingId; }
     public void setVectorEmbeddingId(String vectorEmbeddingId) { this.vectorEmbeddingId = vectorEmbeddingId; }

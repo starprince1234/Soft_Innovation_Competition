@@ -137,10 +137,21 @@ fun MainApp() {
                 
                 composable(
                     route = Routes.CHAT,
-                    arguments = listOf(navArgument("artifactId") { nullable = true; defaultValue = null })
+                    arguments = listOf(
+                        navArgument("artifactId") { nullable = true; defaultValue = null },
+                        navArgument("detectContext") { nullable = true; defaultValue = null },
+                        navArgument("conversationId") { nullable = true; defaultValue = null }
+                    )
                 ) { backStackEntry ->
                     val artifactId = backStackEntry.arguments?.getString("artifactId")
-                    ChatScreen(navController, artifactId = artifactId)
+                    val detectContext = backStackEntry.arguments?.getString("detectContext")
+                    val conversationId = backStackEntry.arguments?.getString("conversationId")
+                    ChatScreen(
+                        navController,
+                        artifactId = artifactId,
+                        detectContext = detectContext,
+                        conversationId = conversationId
+                    )
                 }
 
                 composable(Routes.PROFILE) { ProfileScreen(navController) }
@@ -156,6 +167,9 @@ fun MainApp() {
                 composable(Routes.HISTORY) { HistoryScreen(navController) }
                 composable(Routes.FEEDBACK) { FeedbackScreen(navController) }
                 composable(Routes.ARCHAEOLOGY_UPLOAD) { ArchaeologyUploadScreen(navController) }
+                composable(Routes.FAVORITES) { FavoritesScreen(navController) }
+
+
                 
                 // 管理员核心页面
                 composable(Routes.ADMIN_DASHBOARD) { AdminDashboardScreen(navController) }

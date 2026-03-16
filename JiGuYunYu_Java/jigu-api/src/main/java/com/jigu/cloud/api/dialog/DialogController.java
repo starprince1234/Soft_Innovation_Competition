@@ -42,7 +42,14 @@ public class DialogController {
                     .toList()
                 : Collections.emptyList();
 
-        Dialog dialog = dialogService.createDialog(userId, role, req.query(), req.artifactId(), contextHistory);
+        Dialog dialog = dialogService.createDialog(
+            userId,
+            role,
+            req.query(),
+            req.artifactId(),
+            req.conversationId(),
+            contextHistory
+        );
         return ApiResponse.ok(DialogResponse.from(dialog));
     }
 
@@ -66,6 +73,17 @@ public class DialogController {
                 result.getList().stream().map(DialogResponse::from).toList(),
                 result.getTotalElements(), result.getCurrentPage(), result.getPageSize());
         return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/conversations/{conversationId}/context")
+    public ApiResponse<List<DialogRequest.ContextTurn>> getConversationContext(
+            @PathVariable Long conversationId,
+            HttpServletRequest httpReq) {
+        Long userId = (Long) httpReq.getAttribute("userId");
+        List<DialogRequest.ContextTurn> context = dialogService.getConversationContext(userId, conversationId).stream()
+                .map(turn -> new DialogRequest.ContextTurn(turn.role(), turn.content()))
+                .toList();
+        return ApiResponse.ok(context);
     }
 
     @DeleteMapping("/histories")

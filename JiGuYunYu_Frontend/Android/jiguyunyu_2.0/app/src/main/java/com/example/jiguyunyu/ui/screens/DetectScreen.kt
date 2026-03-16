@@ -175,12 +175,14 @@ fun DetectScreen(navController: NavController, viewModel: DetectViewModel = view
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        val hasDetail = result.artifactId != null
                         Button(
                             onClick = {
                                 viewModel.showResultSheet = false
-                                navController.navigate(Routes.detail(result.artifactId ?: 0L))
+                                result.artifactId?.let { navController.navigate(Routes.detail(it)) }
                             },
                             modifier = Modifier.weight(1f).height(48.dp),
+                            enabled = hasDetail,
                             colors = ButtonDefaults.buttonColors(containerColor = IndigoInk)
                         ) {
                             Text("查看详情")
@@ -189,7 +191,8 @@ fun DetectScreen(navController: NavController, viewModel: DetectViewModel = view
                         OutlinedButton(
                             onClick = {
                                 viewModel.showResultSheet = false
-                                navController.navigate(Routes.chat(result.artifactId))
+                                val detectContext = "识别结果: ${result.label}; 置信度: ${(result.confidence * 100).toInt()}%; ${result.description}"
+                                navController.navigate(Routes.chat(result.artifactId, detectContext))
                             },
                             modifier = Modifier.weight(1f).height(48.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = CinnabarRed)

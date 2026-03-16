@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # ---- build stage ----
 ARG PYTHON_BASE_IMAGE=python:3.11
 FROM ${PYTHON_BASE_IMAGE} AS builder
@@ -10,8 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml ./
 # 安装项目基础依赖
-RUN pip install --upgrade pip setuptools wheel \
-  && pip install --no-cache-dir .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip setuptools wheel \
+    && pip install .
 
 COPY . .
 

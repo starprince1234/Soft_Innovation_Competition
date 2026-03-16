@@ -1,5 +1,6 @@
 package com.jigu.cloud.domain.dialog;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +23,15 @@ public interface DialogRepository {
     /** 获取用户对话的最大 turnId（用于生成下一轮） */
     int findMaxTurnIdByUserId(Long userId);
 
+    /** 获取用户某会话的最大 turnId */
+    int findMaxTurnIdByUserIdAndConversationId(Long userId, Long conversationId);
+
+    /** 获取用户的最大 conversationId */
+    long findMaxConversationIdByUserId(Long userId);
+
+    /** 查询用户某会话的上下文（按时间升序） */
+    List<Dialog> findByUserIdAndConversationId(Long userId, Long conversationId);
+
     /** 清空指定用户的所有历史记录（绑定 userId，禁止全表删除） */
     void deleteAllByUserId(Long userId);
 
@@ -31,10 +41,15 @@ public interface DialogRepository {
     /** 分页查询所有对话历史（管理端） */
     List<Dialog> findAll(int page, int size);
 
+    /** 按创建时间分页查询所有对话历史（管理端） */
+    List<Dialog> findByCreatedAfter(LocalDateTime since, int page, int size);
+
     /** 按团队分页查询对话历史 */
     List<Dialog> findByTeamId(Long teamId, int page, int size);
 
     long countByTeamId(Long teamId);
 
     long count();
+
+    long countByCreatedAfter(LocalDateTime since);
 }

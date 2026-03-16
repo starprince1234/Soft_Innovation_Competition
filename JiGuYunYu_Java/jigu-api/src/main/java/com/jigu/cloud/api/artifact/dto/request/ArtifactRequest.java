@@ -9,6 +9,7 @@ public record ArtifactRequest(
         @NotBlank(message = "文物名称不能为空") String name,
         String description,
         String imageUrl,
+        String imageBase64,
         String thumbnailUrl,
         String tags,
         String location,

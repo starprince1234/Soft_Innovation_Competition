@@ -32,7 +32,12 @@ def _ip_allowed(client_ip: str) -> bool:
         addr = ipaddress.ip_address(client_ip)
     except ValueError:
         return False
-    return addr in whitelist
+    for item in whitelist:
+        if isinstance(item, (ipaddress.IPv4Address, ipaddress.IPv6Address)) and addr == item:
+            return True
+        if isinstance(item, (ipaddress.IPv4Network, ipaddress.IPv6Network)) and addr in item:
+            return True
+    return False
 
 
 class InternalAuthMiddleware(BaseHTTPMiddleware):

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -41,6 +42,8 @@ import com.example.jiguyunyu.data.*
 import com.example.jiguyunyu.ui.navigation.Routes
 import com.example.jiguyunyu.ui.theme.*
 import com.example.jiguyunyu.viewmodel.AdminViewModel
+import java.io.ByteArrayOutputStream
+import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -236,7 +239,7 @@ fun AdminFeedbackScreen(navController: NavController, viewModel: AdminViewModel 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 SuggestionChip(onClick = {}, label = { Text(item.type) })
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(item.username, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(item.username?.ifBlank { "匿名用户" } ?: "匿名用户", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.weight(1f))
                                 Text(item.createdAt, fontSize = 12.sp, color = Bronze)
                             }
@@ -254,6 +257,20 @@ fun AdminFeedbackScreen(navController: NavController, viewModel: AdminViewModel 
                     }
                 }
             }
+        }
+
+        if (viewModel.isUpdatingFeedback) {
+            AlertDialog(
+                onDismissRequest = {},
+                confirmButton = {},
+                title = { Text("请稍候") },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Text(viewModel.operationHint.ifBlank { "正在处理反馈..." })
+                    }
+                }
+            )
         }
     }
 }
@@ -368,6 +385,20 @@ fun AdminPendingArtifactsScreen(navController: NavController, viewModel: AdminVi
                 }
             )
         }
+
+        if (viewModel.isAuditingArtifact) {
+            AlertDialog(
+                onDismissRequest = {},
+                confirmButton = {},
+                title = { Text("请稍候") },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Text(viewModel.operationHint.ifBlank { "正在审批..." })
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -378,7 +409,8 @@ fun AdminAddEditArtifactScreen(navController: NavController, artifactId: Long? =
     var era by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var tagsString by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("") }
+    var categoryExpanded by remember { mutableStateOf(false) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isLocalLoading by remember { mutableStateOf(false) }
 
@@ -408,7 +440,9 @@ fun AdminAddEditArtifactScreen(navController: NavController, artifactId: Long? =
                     era = a.era
                     location = a.location
                     description = a.description
-                    tagsString = a.tags.joinToString(" ")
+                    selectedCategory = ArtifactCategoryCatalog.normalize(a.category)
+                        ?: ArtifactCategoryCatalog.normalize(a.tags.firstOrNull())
+                        ?: ""
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -416,6 +450,10 @@ fun AdminAddEditArtifactScreen(navController: NavController, artifactId: Long? =
                 isLocalLoading = false
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadSelectableCategories()
     }
 
     Scaffold(
@@ -441,7 +479,34 @@ fun AdminAddEditArtifactScreen(navController: NavController, artifactId: Long? =
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("馆藏地") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = tagsString, onValueChange = { tagsString = it }, label = { Text("标签") }, modifier = Modifier.fillMaxWidth())
+                ExposedDropdownMenuBox(
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = !categoryExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedCategory,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("标签分类") },
+                        placeholder = { Text("请选择（与首页筛选联动）") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = categoryExpanded,
+                        onDismissRequest = { categoryExpanded = false }
+                    ) {
+                        viewModel.selectableCategories.forEach { category ->
+                            DropdownMenuItem(
+                                text = { Text(category) },
+                                onClick = {
+                                    selectedCategory = category
+                                    categoryExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("描述") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
                 
@@ -461,8 +526,28 @@ fun AdminAddEditArtifactScreen(navController: NavController, artifactId: Long? =
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = {
-                        val tags = tagsString.split(" ").filter { it.isNotBlank() }
-                        val req = ArchaeologySubmitRequest(name, description, "", location, era, tags)
+                        val normalizedTags = selectedCategory.ifBlank { "青铜" }
+                        val imageBase64 = bitmap?.let {
+                            val maxSide = 1280
+                            val scale = min(maxSide.toFloat() / it.width, maxSide.toFloat() / it.height)
+                            val resized = if (scale < 1f) {
+                                Bitmap.createScaledBitmap(it, (it.width * scale).toInt(), (it.height * scale).toInt(), true)
+                            } else {
+                                it
+                            }
+                            val output = ByteArrayOutputStream()
+                            resized.compress(Bitmap.CompressFormat.JPEG, 80, output)
+                            "data:image/jpeg;base64," + Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP)
+                        }
+                        val req = AdminArtifactRequest(
+                            name = name,
+                            description = description,
+                            imageBase64 = imageBase64,
+                            tags = normalizedTags,
+                            location = location,
+                            era = era,
+                            status = if (artifactId == null) "PENDING" else "APPROVED"
+                        )
                         if (artifactId == null) {
                             viewModel.createArtifact(req) { navController.popBackStack() }
                         } else {
@@ -470,11 +555,42 @@ fun AdminAddEditArtifactScreen(navController: NavController, artifactId: Long? =
                         }
                     }, 
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = name.isNotBlank() && era.isNotBlank()
+                    enabled = name.isNotBlank()
+                            && era.isNotBlank()
+                            && selectedCategory.isNotBlank()
+                            && (artifactId != null || bitmap != null)
+                            && !viewModel.isSubmittingArtifact
                 ) { 
                     Text("提交") 
                 }
+
+                if (viewModel.errorMsg.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(viewModel.errorMsg, color = CinnabarRed, fontSize = 12.sp)
+                }
+
+                if (viewModel.isSubmittingArtifact) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(viewModel.operationHint.ifBlank { "正在上传..." }, color = Bronze, fontSize = 12.sp)
+                    }
+                }
             }
+        }
+
+        if (viewModel.isSubmittingArtifact) {
+            AlertDialog(
+                onDismissRequest = {},
+                confirmButton = {},
+                title = { Text("请稍候") },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Text(viewModel.operationHint.ifBlank { "正在上传..." })
+                    }
+                }
+            )
         }
     }
 }

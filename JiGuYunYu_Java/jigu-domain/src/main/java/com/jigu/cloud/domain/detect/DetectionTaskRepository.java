@@ -1,5 +1,6 @@
 package com.jigu.cloud.domain.detect;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -10,4 +11,10 @@ public interface DetectionTaskRepository {
     Optional<DetectionTask> findById(Long id);
 
     DetectionTask save(DetectionTask task);
+
+    long count();
+
+    long countByStatus(String status);
+
+    long countByCreatedAfter(LocalDateTime since);
 }

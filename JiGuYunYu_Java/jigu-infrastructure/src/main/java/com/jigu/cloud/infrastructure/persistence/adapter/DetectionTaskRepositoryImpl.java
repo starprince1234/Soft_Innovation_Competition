@@ -5,6 +5,7 @@ import com.jigu.cloud.domain.detect.DetectionTaskRepository;
 import com.jigu.cloud.infrastructure.persistence.jpa.DetectionTaskJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -27,5 +28,20 @@ public class DetectionTaskRepositoryImpl implements DetectionTaskRepository {
     @Override
     public DetectionTask save(DetectionTask task) {
         return jpaRepository.save(task);
+    }
+
+    @Override
+    public long count() {
+        return jpaRepository.count();
+    }
+
+    @Override
+    public long countByStatus(String status) {
+        return jpaRepository.countByStatus(status);
+    }
+
+    @Override
+    public long countByCreatedAfter(LocalDateTime since) {
+        return jpaRepository.countByCreatedAtAfter(since);
     }
 }

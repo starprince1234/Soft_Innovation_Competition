@@ -13,6 +13,8 @@
 """
 
 import logging
+import hashlib
+import json
 import time
 from pathlib import Path
 from typing import List, Optional
@@ -23,6 +25,7 @@ from app.domain.ports.embedding import EmbeddingPort
 from app.domain.ports.llm import LLMPort
 from app.infra.cache.redis_cache import RedisCache
 from app.rag.retriever import Retriever
+from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +53,10 @@ class DialogUseCase:
 
     async def execute(self, req: DialogRequest) -> DialogResult:
         start = time.perf_counter()
+        context_fingerprint = self._cache_fingerprint(req)
 
         # ---- 1. 查 Redis 对话级缓存 ----
-        cached = await self._try_cache_get(req)
+        cached = await self._try_cache_get(req, context_fingerprint)
         if cached is not None:
             logger.info("dialog  dialog_cache_hit  query_len=%d", len(req.query))
             return cached
@@ -61,7 +65,7 @@ class DialogUseCase:
         chunks = await self._retrieve_chunks(req)
 
         # ---- 3. 查 Redis 检索级缓存 ----
-        search_cached = await self._try_search_cache_get(req)
+        search_cached = await self._try_search_cache_get(req, context_fingerprint)
         if search_cached is not None:
             logger.info("dialog  search_cache_hit  query_len=%d", len(req.query))
             cost_ms = round((time.perf_counter() - start) * 1000, 2)
@@ -85,14 +89,34 @@ class DialogUseCase:
                 cost_ms=cost_ms,
             )
             # 写入对话级缓存（更短 TTL）
-            await self._try_cache_set(req, result)
+            await self._try_cache_set(req, result, context_fingerprint)
             return result
 
         # ---- 4. 拼接完整 prompt ----
         full_prompt = self._build_prompt(req, chunks)
 
         # ---- 5. 调 LLM（千帆 web_summary = 本地 RAG + 网络知识融合） ----
-        llm_result = await self._llm.chat(full_prompt)
+        try:
+            llm_result = await self._llm.chat(full_prompt)
+        except Exception as exc:
+            logger.warning("llm unavailable, fallback to local rag answer: %s", exc)
+            fallback_text = self._build_local_answer(req, chunks)
+            cost_ms = round((time.perf_counter() - start) * 1000, 2)
+            sources = [
+                Source(title=c.title, url=c.url, score=c.score, chunk_id=c.chunk_id)
+                for c in chunks
+            ]
+            result = DialogResult(
+                answer=fallback_text,
+                sources=sources,
+                model="local_rag_fallback",
+                cost_ms=cost_ms,
+            )
+            await self._try_cache_set(req, result, context_fingerprint)
+            return result
+
+        answer_text = llm_result.text
+        model_name = llm_result.model
 
         cost_ms = round((time.perf_counter() - start) * 1000, 2)
 
@@ -113,22 +137,45 @@ class DialogUseCase:
                 ))
 
         result = DialogResult(
-            answer=llm_result.text,
+            answer=answer_text,
             sources=sources,
-            model=llm_result.model,
+            model=model_name,
             cost_ms=cost_ms,
         )
 
         logger.info(
             "dialog  query_len=%d chunks=%d cost_ms=%.2f model=%s",
-            len(req.query), len(chunks), cost_ms, llm_result.model,
+            len(req.query), len(chunks), cost_ms, model_name,
         )
 
         # ---- 7. 写入 Redis 检索级 + 对话级缓存 ----
-        await self._try_search_cache_set(req, llm_result)
-        await self._try_cache_set(req, result)
+        await self._try_search_cache_set(req, llm_result, context_fingerprint)
+        await self._try_cache_set(req, result, context_fingerprint)
 
         return result
+
+    @staticmethod
+    def _build_local_answer(req: DialogRequest, chunks: list) -> str:
+        """外部检索暂不可用时，基于本地知识和识别上下文提供可用回答。"""
+        if chunks:
+            top = chunks[0]
+            snippet = (top.text or "").strip()
+            if len(snippet) > 180:
+                snippet = snippet[:180] + "..."
+            return (
+                f"先基于当前已检索到的本地资料回答：{snippet} "
+                f"（参考：{top.title}）。"
+            )
+
+        detect_hint = ""
+        for turn in (req.context_history or []):
+            content = str(turn.get("content", "")).strip()
+            if "识别上下文" in content or "识别结果" in content:
+                detect_hint = content
+                break
+        if detect_hint:
+            return f"当前可依据识别上下文进行说明：{detect_hint[:220]}。"
+        return "当前没有命中可用本地资料，请补充更具体的问题或上下文。"
 
     # ---- 内部方法 ----
 
@@ -141,6 +188,10 @@ class DialogUseCase:
                 query_embedding = await self._embedder.embed(req.query)
             except Exception as exc:
                 logger.warning("embedding failed, using empty vector: %s", exc)
+
+        # 空向量会导致向量库检索异常，直接返回空检索结果走降级回答。
+        if not query_embedding:
+            return []
 
         chunks = await self._retriever.retrieve(query_embedding, top_k=req.top_k)
 
@@ -183,12 +234,15 @@ class DialogUseCase:
 
         # 对话历史
         history_hint = ""
+        detect_hint = ""
         if req.context_history:
             lines = []
             for turn in req.context_history:
                 role = turn.get("role", "")
                 content = turn.get("content", "")
                 if role or content:
+                    if "识别上下文" in content or "识别结果" in content:
+                        detect_hint = content
                     lines.append(f"{role}: {content}")
             if lines:
                 history_hint = "\n".join(lines) + "\n"
@@ -196,18 +250,36 @@ class DialogUseCase:
         return (
             f"{_SYSTEM_PROMPT}\n\n"
             f"{role_hint}"
+            f"### 识别上下文\n{detect_hint or '无'}\n\n"
             f"### 参考资料（本地知识库检索结果）\n{rag_context}\n\n"
             f"### 对话历史\n{history_hint}\n"
             f"### 用户提问\n{req.query}\n\n"
             f"请结合以上参考资料和你的知识回答。如引用了参考资料，请标注 [来源N]。"
         )
 
-    async def _try_cache_get(self, req: DialogRequest) -> Optional[DialogResult]:
+    @staticmethod
+    def _cache_fingerprint(req: DialogRequest) -> str:
+        llm_backend = "qianfan_http_v2" if settings.QIANFAN_API_KEY else "qianfan_stub"
+        payload = {
+            "user_role": req.user_role,
+            "context_history": req.context_history or [],
+            "top_k": req.top_k,
+            "local_rag_confidence_threshold": req.local_rag_confidence_threshold,
+            "llm_backend": llm_backend,
+            "dialog_strategy_version": 4,
+        }
+        raw = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+        return hashlib.md5(raw.encode("utf-8")).hexdigest()[:12]
+    async def _try_cache_get(self, req: DialogRequest, context_fingerprint: str) -> Optional[DialogResult]:
         """尝试从 Redis 获取缓存"""
         if not self._cache:
             return None
         try:
-            data = await self._cache.get_dialog(req.query, req.artifact_id)
+            data = await self._cache.get_dialog(
+                req.query,
+                req.artifact_id,
+                context_fingerprint=context_fingerprint,
+            )
             if data and isinstance(data, dict):
                 sources = [
                     Source(**s) for s in data.get("sources", [])
@@ -222,7 +294,7 @@ class DialogUseCase:
             logger.debug("dialog cache get failed: %s", exc)
         return None
 
-    async def _try_cache_set(self, req: DialogRequest, result: DialogResult) -> None:
+    async def _try_cache_set(self, req: DialogRequest, result: DialogResult, context_fingerprint: str) -> None:
         """尝试将结果写入 Redis 缓存"""
         if not self._cache:
             return
@@ -235,23 +307,33 @@ class DialogUseCase:
                 ],
                 "model": result.model,
             }
-            await self._cache.set_dialog(req.query, data, req.artifact_id, ex=_DIALOG_CACHE_TTL)
+            await self._cache.set_dialog(
+                req.query,
+                data,
+                req.artifact_id,
+                context_fingerprint=context_fingerprint,
+                ex=_DIALOG_CACHE_TTL,
+            )
         except Exception as exc:
             logger.debug("dialog cache set failed: %s", exc)
 
-    async def _try_search_cache_get(self, req: DialogRequest) -> Optional[dict]:
+    async def _try_search_cache_get(self, req: DialogRequest, context_fingerprint: str) -> Optional[dict]:
         """尝试从 Redis 获取检索级缓存（千帆 search 结果）"""
         if not self._cache:
             return None
         try:
-            data = await self._cache.get_search(req.query, req.artifact_id)
+            data = await self._cache.get_search(
+                req.query,
+                req.artifact_id,
+                context_fingerprint=context_fingerprint,
+            )
             if data and isinstance(data, dict) and "answer" in data:
                 return data
         except Exception as exc:
             logger.debug("search cache get failed: %s", exc)
         return None
 
-    async def _try_search_cache_set(self, req: DialogRequest, llm_result) -> None:
+    async def _try_search_cache_set(self, req: DialogRequest, llm_result, context_fingerprint: str) -> None:
         """将 LLM 检索结果写入 Redis 检索级缓存"""
         if not self._cache:
             return
@@ -267,7 +349,13 @@ class DialogUseCase:
                 "model": llm_result.model,
                 "web_sources": web_sources_data,
             }
-            await self._cache.set_search(req.query, data, req.artifact_id, ex=_SEARCH_CACHE_TTL)
+            await self._cache.set_search(
+                req.query,
+                data,
+                req.artifact_id,
+                context_fingerprint=context_fingerprint,
+                ex=_SEARCH_CACHE_TTL,
+            )
         except Exception as exc:
             logger.debug("search cache set failed: %s", exc)
 

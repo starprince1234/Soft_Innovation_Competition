@@ -74,12 +74,12 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = viewMo
             Spacer(modifier = Modifier.height(32.dp))
 
             // 快速角色切换测试区 (为了演示角色区分)
-            Text("--- 开发测试：点击快速填入账号 ---", fontSize = 10.sp, color = Bronze)
+            Text("--- 开发测试：点击快速填入账号（密码均为 123456）---", fontSize = 10.sp, color = Bronze)
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RoleTestChip("公众用户", "user", "123") { u, p -> username = u; password = p }
-                RoleTestChip("考古专家", "arc_li", "123") { u, p -> username = u; password = p }
-                RoleTestChip("管理员", "admin", "123") { u, p -> username = u; password = p }
+                RoleTestChip("公众用户", "user", "123456") { u, p -> username = u; password = p }
+                RoleTestChip("考古专家", "arc_li", "123456") { u, p -> username = u; password = p }
+                RoleTestChip("管理员", "admin", "123456") { u, p -> username = u; password = p }
             }
             Spacer(modifier = Modifier.height(24.dp))
 

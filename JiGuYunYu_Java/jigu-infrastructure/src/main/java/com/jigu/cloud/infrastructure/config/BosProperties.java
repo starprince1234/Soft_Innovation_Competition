@@ -20,6 +20,12 @@ public class BosProperties {
     /** 上传文件最大大小（字节），默认 5MB */
     private long maxFileSize = 5 * 1024 * 1024;
 
+    /**
+     * 是否在健康检查中执行 bucket exists 探测。
+     * 对阿里云子账号场景，doesBucketExist 可能触发 GetBucketAcl 并被拒绝，建议默认关闭。
+     */
+    private boolean healthCheckBucketExists = false;
+
     public String getEndpoint() { return endpoint; }
     public void setEndpoint(String endpoint) { this.endpoint = endpoint; }
 
@@ -34,6 +40,9 @@ public class BosProperties {
 
     public long getMaxFileSize() { return maxFileSize; }
     public void setMaxFileSize(long maxFileSize) { this.maxFileSize = maxFileSize; }
+
+    public boolean isHealthCheckBucketExists() { return healthCheckBucketExists; }
+    public void setHealthCheckBucketExists(boolean healthCheckBucketExists) { this.healthCheckBucketExists = healthCheckBucketExists; }
 
     /** 判断 BOS 是否已配置 */
     public boolean isConfigured() {

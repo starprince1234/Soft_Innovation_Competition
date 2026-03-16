@@ -72,7 +72,13 @@ fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = vi
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 MenuRow(Icons.Outlined.History, "历史识别记录") { navController.navigate(Routes.HISTORY) }
                 MenuRow(Icons.Outlined.Lock, "修改密码") { showChangePasswordDialog = true }   // 新增修改密码入口
-                MenuRow(Icons.Outlined.FavoriteBorder, "我的收藏") { /* TODO */ }
+                MenuRow(Icons.Outlined.FavoriteBorder, "我的收藏") {
+                    navController.navigate(Routes.FAVORITES) {
+                        popUpTo(Routes.PROFILE) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
                 MenuRow(Icons.Outlined.Feedback, "问题反馈") { navController.navigate(Routes.FEEDBACK) }
 
                 if (user?.role == UserRole.ARCHAEOLOGIST) {

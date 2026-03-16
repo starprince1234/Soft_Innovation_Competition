@@ -7,7 +7,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,16 +27,21 @@ public class ArtifactRepositoryImpl implements ArtifactRepository {
 
     @Override
     public Optional<Artifact> findById(Long id) {
-        return jpaRepository.findById(id);
+        return jpaRepository.findByIdAndDeletedFalse(id);
     }
 
     @Override
     public Optional<Artifact> findByName(String name) {
-        return jpaRepository.findByName(name);
+        return jpaRepository.findByNameAndDeletedFalse(name);
     }
 
     @Override
     public boolean existsByName(String name) {
+        return jpaRepository.existsByNameAndDeletedFalse(name);
+    }
+
+    @Override
+    public boolean existsByNameIncludingDeleted(String name) {
         return jpaRepository.existsByName(name);
     }
 
@@ -44,8 +51,9 @@ public class ArtifactRepositoryImpl implements ArtifactRepository {
     }
 
     @Override
+    @Transactional
     public void deleteById(Long id) {
-        jpaRepository.deleteById(id);
+        jpaRepository.softDeleteById(id);
     }
 
     @Override
@@ -66,7 +74,7 @@ public class ArtifactRepositoryImpl implements ArtifactRepository {
     @Override
     public List<Artifact> findByStatus(String status, int page, int size, String sortBy, String direction) {
         PageRequest pageable = PageRequest.of(page, size, buildSort(sortBy, direction));
-        return jpaRepository.findByStatus(status, pageable).getContent();
+        return jpaRepository.findByStatusAndDeletedFalse(status, pageable).getContent();
     }
 
     @Override
@@ -75,13 +83,18 @@ public class ArtifactRepositoryImpl implements ArtifactRepository {
     }
 
     @Override
+    public long countByStatusAndCreatedAfter(String status, LocalDateTime since) {
+        return jpaRepository.countByStatusAndCreatedAtAfter(status, since);
+    }
+
+    @Override
     public long count() {
-        return jpaRepository.count();
+        return jpaRepository.countActiveArtifacts();
     }
 
     @Override
     public List<Artifact> findAllByStatus(String status) {
-        return jpaRepository.findAllByStatus(status);
+        return jpaRepository.findAllByStatusAndDeletedFalse(status);
     }
 
     private Sort buildSort(String sortBy, String direction) {

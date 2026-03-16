@@ -51,13 +51,14 @@ services:
       ENV: ${PYTHON_ENV:-production}
       LOG_LEVEL: ${PYTHON_LOG_LEVEL:-INFO}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
-      VLM_BASE_URL: ${VLM_BASE_URL:-}
+      VLM_BASE_URL: ${VLM_BASE_URL:-http://mock-vlm:18080/v1}
       VLM_API_KEY: ${VLM_API_KEY:-}
       VLM_MODEL_NAME: ${VLM_MODEL_NAME:-qwen3-vl-lora}
       VLM_TIMEOUT: ${VLM_TIMEOUT:-60.0}
       QIANFAN_API_KEY: ${QIANFAN_API_KEY:-}
       QIANFAN_SECRET_KEY: ${QIANFAN_SECRET_KEY:-}
       QIANFAN_BASE_URL: ${QIANFAN_BASE_URL:-}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-600.0}
       VECTOR_BACKEND: ${VECTOR_BACKEND:-chroma}
       VECTOR_DB_URL: ${VECTOR_DB_URL:-}
       CHROMA_PERSIST_DIR: /app/chroma_data
@@ -73,9 +74,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      mock-vlm:
+        condition: service_started
     ports:
       - "${PYTHON_PORT:-8000}:8000"
     volumes:
+      - ./JiGuYunYu_Python:/app
       - ./backend-data/chroma:/app/chroma_data
       - ./backend-data/sentence_transformers_cache:/app/.cache/sentence_transformers
     healthcheck:
@@ -88,10 +92,30 @@ services:
       - jigu-net
     restart: unless-stopped
 
+  mock-vlm:
+    image: ${JIGU_PYTHON_IMAGE:-jigu-python:0.1.0}
+    container_name: jigu-mock-vlm
+    working_dir: /workspace
+    command: ["python", "-m", "uvicorn", "scripts.mock_vlm_server:app", "--host", "0.0.0.0", "--port", "18080"]
+    volumes:
+      - ./:/workspace:ro
+    ports:
+      - "${MOCK_VLM_PORT:-18080}:18080"
+    healthcheck:
+      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request\nurllib.request.urlopen('http://127.0.0.1:18080/v1/models', timeout=3)\nPY"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    networks:
+      - jigu-net
+    restart: unless-stopped
+
   jigu-java:
     image: ${JIGU_JAVA_IMAGE:-jigu-java:0.1.0}
     container_name: jigu-java
     environment:
+      JAVA_TOOL_OPTIONS: -Dsun.net.inetaddr.ttl=60 -Dsun.net.inetaddr.negative.ttl=0
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -103,6 +127,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_SECONDS: ${JWT_EXPIRES_SECONDS:-3600}
       PYTHON_BASE_URL: http://jigu-python:8000
+      PYTHON_CONNECT_TIMEOUT_MS: ${PYTHON_CONNECT_TIMEOUT_MS:-5000}
+      PYTHON_READ_TIMEOUT_MS: ${PYTHON_READ_TIMEOUT_MS:-600000}
       INTERNAL_TOKEN: ${INTERNAL_TOKEN}
       BOS_ENDPOINT: ${BOS_ENDPOINT:-}
       BOS_ACCESS_KEY: ${BOS_ACCESS_KEY:-}
@@ -120,7 +146,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/api/v1/health | grep '\"code\":200' >/dev/null || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 15s
       retries: 30
       start_period: 30s
     networks:

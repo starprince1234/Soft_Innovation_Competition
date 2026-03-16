@@ -19,10 +19,20 @@ public interface UserRepository {
     /** 分页查询所有用户（管理端） */
     List<User> findAll(int page, int size, String sortBy, String direction);
 
+    /** 按状态分页查询用户（管理端） */
+    List<User> findByStatus(String status, int page, int size, String sortBy, String direction);
+
     /** 按用户名模糊搜索（管理端） */
     List<User> findByUsernameLike(String username, int page, int size, String sortBy, String direction);
 
+    /** 按用户名 + 状态模糊搜索（管理端） */
+    List<User> findByUsernameLikeAndStatus(String username, String status, int page, int size, String sortBy, String direction);
+
     long countByUsernameLike(String username);
+
+    long countByUsernameLikeAndStatus(String username, String status);
+
+    long countByStatus(String status);
 
     long count();
 

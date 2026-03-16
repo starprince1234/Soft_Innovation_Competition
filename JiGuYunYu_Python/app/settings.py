@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List, Optional
+from typing import List, Optional, Union
 import ipaddress
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -13,6 +14,8 @@ class Settings(BaseSettings):
     QIANFAN_API_KEY: Optional[str] = None
     QIANFAN_SECRET_KEY: Optional[str] = None
     QIANFAN_BASE_URL: Optional[str] = None
+    QIANFAN_TEMPERATURE: float = 1e-6
+    QIANFAN_TOP_P: float = 1e-10
 
     # Vector store (ChromaDB)
     VECTOR_BACKEND: str = "chroma"
@@ -44,21 +47,25 @@ class Settings(BaseSettings):
 
     # Timeouts (seconds)
     HTTP_TIMEOUT: float = 10.0
-    LLM_TIMEOUT: float = 30.0
+    LLM_TIMEOUT: float = 600.0
     VECTOR_TIMEOUT: float = 5.0
 
-    model_config = SettingsConfigDict(env_file=".env")
+    _ENV_PATH = Path(__file__).resolve().parents[1] / ".env"
+    model_config = SettingsConfigDict(env_file=str(_ENV_PATH))
 
-    def internal_ip_whitelist(self) -> List[ipaddress._BaseAddress]:
+    def internal_ip_whitelist(self) -> List[Union[ipaddress._BaseAddress, ipaddress._BaseNetwork]]:
         if not self.INTERNAL_IP_WHITELIST:
             return []
         items = [s.strip() for s in self.INTERNAL_IP_WHITELIST.split(",") if s.strip()]
-        parsed: List[ipaddress._BaseAddress] = []
+        parsed: List[Union[ipaddress._BaseAddress, ipaddress._BaseNetwork]] = []
         for item in items:
             try:
                 parsed.append(ipaddress.ip_address(item))
             except ValueError:
-                continue
+                try:
+                    parsed.append(ipaddress.ip_network(item, strict=False))
+                except ValueError:
+                    continue
         return parsed
 
 

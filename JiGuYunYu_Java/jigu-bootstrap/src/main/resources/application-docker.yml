@@ -19,11 +19,14 @@ jigu:
   python:
     base-url: ${PYTHON_BASE_URL:http://jigu-python:8000}
     internal-token: ${INTERNAL_TOKEN:change_me_internal_token}
+    connect-timeout: ${PYTHON_CONNECT_TIMEOUT_MS:5000}
+    read-timeout: ${PYTHON_READ_TIMEOUT_MS:600000}
   bos:
     endpoint: ${BOS_ENDPOINT:}
     access-key: ${BOS_ACCESS_KEY:}
     secret-key: ${BOS_SECRET_KEY:}
     bucket: ${BOS_BUCKET:}
+    health-check-bucket-exists: ${BOS_HEALTH_CHECK_BUCKET_EXISTS:false}
   redis:
     jwt-blacklist-prefix: "jwt_blacklist:"
   app:

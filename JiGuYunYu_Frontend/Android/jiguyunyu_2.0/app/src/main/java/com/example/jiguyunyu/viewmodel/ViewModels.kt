@@ -21,6 +21,12 @@ import java.util.UUID
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import org.json.JSONObject
+import retrofit2.HttpException
+import java.io.InterruptedIOException
+import java.net.SocketTimeoutException
 import kotlin.math.min
 
 // 统一图片工具
@@ -44,6 +50,57 @@ object ImageUtils {
     }
 }
 
+private object LocalSeedArtifactStore {
+    val items = listOf(
+        Artifact(
+            id = -1L,
+            name = "测试文物·青铜礼器",
+            era = "商代",
+            category = "青铜",
+            imageUrl = "https://picsum.photos/seed/local_artifact_1/800/800",
+            description = "本地兜底测试文物：用于在后端暂无已审核数据时，验证首页展示链路。",
+            location = "应用内置",
+            tags = listOf("测试", "青铜")
+        ),
+        Artifact(
+            id = -2L,
+            name = "测试文物·陶器残片",
+            era = "战国",
+            category = "陶器",
+            imageUrl = "https://picsum.photos/seed/local_artifact_2/800/800",
+            description = "本地兜底测试文物：用于验证分类与详情跳转展示。",
+            location = "应用内置",
+            tags = listOf("测试", "陶器")
+        )
+    )
+
+    fun byId(id: Long): Artifact? = items.firstOrNull { it.id == id }
+}
+
+private object DetectDetailBridge {
+    private const val START_ID = -10000L
+    private val mockedArtifacts = linkedMapOf<Long, Artifact>()
+
+    fun save(result: DetectionResult): Long {
+        val id = START_ID - mockedArtifacts.size
+        mockedArtifacts[id] = Artifact(
+            id = id,
+            name = result.label.ifBlank { "识别结果" },
+            era = "待考证",
+            category = "识别结果",
+            imageUrl = result.imageUrl,
+            description = result.description.ifBlank {
+                "当前模型服务未关联到文物库条目，已展示本次识别文本。后续可在管理端补充文物并完成自动关联。"
+            },
+            location = "识别结果",
+            tags = listOf("识别", "临时")
+        )
+        return id
+    }
+
+    fun get(id: Long): Artifact? = mockedArtifacts[id]
+}
+
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val auth = AuthRepository.getInstance(application)
     var isLoading by mutableStateOf(false)
@@ -55,21 +112,30 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             errorMsg = ""
 
             try {
-                if (username.isEmpty() || pass.isEmpty()) {
+                val normalizedUsername = username.trim()
+                if (normalizedUsername.isEmpty() || pass.isEmpty()) {
                     errorMsg = "请输入用户名和密码"
                     return@launch
                 }
+                if (normalizedUsername.length < 3) {
+                    errorMsg = "用户名至少 3 位"
+                    return@launch
+                }
+                if (pass.length < 6) {
+                    errorMsg = "密码至少 6 位"
+                    return@launch
+                }
 
-                val response = NetworkModule.api.login(LoginRequest(username, pass))
+                val response = NetworkModule.api.login(LoginRequest(normalizedUsername, pass))
                 if (response.code == 200 && response.data != null) {
-                    auth.saveSession(username, response.data.token, response.data.roles)
+                    auth.saveSession(normalizedUsername, response.data.token, response.data.roles)
                     onSuccess()
                 } else {
                     errorMsg = response.message.ifBlank { "登录失败" }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                errorMsg = "网络异常: ${e.message}"
+                errorMsg = extractErrorMessage(e, "登录失败")
             } finally {
                 isLoading = false
             }
@@ -82,25 +148,51 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             errorMsg = ""
 
             try {
-                if (username.isEmpty() || pass.isEmpty()) {
+                val normalizedUsername = username.trim()
+                if (normalizedUsername.isEmpty() || pass.isEmpty()) {
                     errorMsg = "请输入用户名和密码"
                     return@launch
                 }
+                if (normalizedUsername.length < 3) {
+                    errorMsg = "用户名至少 3 位"
+                    return@launch
+                }
+                if (pass.length < 6) {
+                    errorMsg = "密码至少 6 位"
+                    return@launch
+                }
 
-                val response = NetworkModule.api.register(RegisterRequest(username, pass))
+                val response = NetworkModule.api.register(RegisterRequest(normalizedUsername, pass))
                 if (response.code == 200) {
                     // 注册成功后自动登录
-                    login(username, pass, onSuccess)
+                    login(normalizedUsername, pass, onSuccess)
                 } else {
                     errorMsg = response.message.ifBlank { "注册失败" }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                errorMsg = "网络异常: ${e.message}"
+                errorMsg = extractErrorMessage(e, "注册失败")
             } finally {
                 isLoading = false
             }
         }
+    }
+
+    private fun extractErrorMessage(e: Throwable, fallback: String): String {
+        if (e is HttpException) {
+            val body = e.response()?.errorBody()?.string()
+            if (!body.isNullOrBlank()) {
+                return try {
+                    val json = JSONObject(body)
+                    val message = json.optString("message")
+                    if (message.isNullOrBlank()) "$fallback：HTTP ${e.code()}" else message
+                } catch (_: Exception) {
+                    "$fallback：HTTP ${e.code()}"
+                }
+            }
+            return "$fallback：HTTP ${e.code()}"
+        }
+        return "网络异常: ${e.message}"
     }
 }
 
@@ -108,6 +200,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     // UI状态数据
     private val _artifacts = MutableStateFlow<List<Artifact>>(emptyList())
     val artifacts = _artifacts.asStateFlow()
+    private val _availableCategories = MutableStateFlow(ArtifactCategoryCatalog.allWithAllOption(emptyList()))
+    val availableCategories = _availableCategories.asStateFlow()
 
     var isLoading by mutableStateOf(false)
     var isRefreshing by mutableStateOf(false)
@@ -120,8 +214,38 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var currentPage = 0
     private var isLastPage = false
+    private val prefs = application.getSharedPreferences("home_cache", Application.MODE_PRIVATE)
+    private val gson = Gson()
+    private val cacheType = object : TypeToken<List<Artifact>>() {}.type
 
-    init { loadArtifacts(refresh = true) }
+    init {
+        restoreFromCache()
+        loadArtifacts(refresh = true)
+    }
+
+    private fun restoreFromCache() {
+        val json = prefs.getString("artifacts_json", null) ?: return
+        runCatching {
+            val cached: List<Artifact> = gson.fromJson(json, cacheType) ?: emptyList()
+            if (cached.isNotEmpty()) {
+                _artifacts.value = cached
+                updateAvailableCategories(cached)
+            }
+        }
+    }
+
+    private fun cacheArtifacts(items: List<Artifact>) {
+        runCatching {
+            prefs.edit().putString("artifacts_json", gson.toJson(items)).apply()
+        }
+    }
+
+    private fun updateAvailableCategories(items: List<Artifact>) {
+        _availableCategories.value = ArtifactCategoryCatalog.allWithAllOption(emptyList())
+        if (selectedCategory != "全部" && !_availableCategories.value.contains(selectedCategory)) {
+            selectedCategory = "全部"
+        }
+    }
 
     fun loadArtifacts(refresh: Boolean = false) {
         if (refresh) {
@@ -136,21 +260,39 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val nameQuery = searchQuery.ifBlank { null }
-                val eraQuery = if (selectedCategory != "全部") selectedCategory else null
+                val eraQuery: String? = null
+                val keywordQuery = if (selectedCategory != "全部") selectedCategory else null
+                val noFilter = nameQuery == null && keywordQuery == null
 
                 val response = NetworkModule.api.getArtifacts(
                     page = currentPage,
                     size = 10,
                     name = nameQuery,
-                    era = eraQuery
+                    era = eraQuery,
+                    keyword = keywordQuery
                 )
 
                 if (response.code == 200 && response.data != null) {
-                    val newItems = response.data.list
+                    val responseItems = response.data.list
+                    val mergedItems = responseItems
+                    updateAvailableCategories(mergedItems)
+
+                    val newItems = if (selectedCategory == "全部") {
+                        mergedItems
+                    } else {
+                        mergedItems.filter {
+                            it.category.contains(selectedCategory, ignoreCase = true)
+                                    || it.tags.any { tag -> tag.contains(selectedCategory, ignoreCase = true) }
+                                    || it.name.contains(selectedCategory, ignoreCase = true)
+                        }
+                    }
                     if (refresh) {
                         _artifacts.value = newItems
+                        cacheArtifacts(newItems)
                     } else {
-                        _artifacts.value += newItems
+                        val appended = (_artifacts.value + newItems).distinctBy { it.id }
+                        _artifacts.value = appended
+                        cacheArtifacts(appended)
                     }
 
                     isLastPage = response.data.currentPage >= response.data.totalPages - 1
@@ -160,8 +302,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                // 发生错误时，如果是刷新，清空数据
-                if (refresh) _artifacts.value = emptyList()
+                if (refresh) {
+                    _artifacts.value = emptyList()
+                    updateAvailableCategories(emptyList())
+                }
             } finally {
                 isLoading = false
                 isRefreshing = false
@@ -187,15 +331,44 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 }
 
 class DetailViewModel(application: Application) : AndroidViewModel(application) {
+    private val auth = AuthRepository.getInstance(application)
+    private val favoriteRepository = FavoriteRepository.getInstance(application)
+
     var artifact by mutableStateOf<Artifact?>(null)
+    var isFavorite by mutableStateOf(false)
     var isLoading by mutableStateOf(false)
     var errorMsg by mutableStateOf("")
+
+    private fun userFavoriteKey(): String {
+        val user = auth.currentUser.value
+        return user?.username ?: user?.id ?: "guest"
+    }
+
+    fun refreshFavoriteState(id: Long?) {
+        if (id == null) {
+            isFavorite = false
+            return
+        }
+        isFavorite = favoriteRepository.isFavorite(userFavoriteKey(), id)
+    }
+
+    fun toggleFavorite(id: Long): Boolean {
+        isFavorite = favoriteRepository.toggleFavorite(userFavoriteKey(), id)
+        return isFavorite
+    }
 
     fun loadArtifact(id: Long) {
         viewModelScope.launch {
             isLoading = true
             errorMsg = ""
             try {
+                if (id < 0) {
+                    artifact = LocalSeedArtifactStore.byId(id) ?: DetectDetailBridge.get(id)
+                    if (artifact == null) {
+                        errorMsg = "未找到本地文物详情"
+                    }
+                    return@launch
+                }
                 val response = NetworkModule.api.getArtifactDetail(id)
                 if (response.code == 200 && response.data != null) {
                     artifact = response.data
@@ -206,6 +379,7 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
                 e.printStackTrace()
                 errorMsg = "网络异常: ${e.message}"
             } finally {
+                refreshFavoriteState(id)
                 isLoading = false
             }
         }
@@ -252,18 +426,39 @@ class DetectViewModel(application: Application) : AndroidViewModel(application) 
                         val statusResponse = NetworkModule.api.getDetectTaskStatus(token, taskId)
 
                         if (statusResponse.code == 200 && statusResponse.data != null) {
-                            val status = statusResponse.data.status // 假设返回体包含 status 字段
+                            val status = statusResponse.data.status
                             if (status == "COMPLETED") {
-                                isCompleted = true
-                                val result = statusResponse.data.result
-                                detectionResult = DetectionResult(
-                                    label = result?.label ?: "未知文物",
-                                    confidence = result?.confidence ?: 0f,
-                                    description = result?.description ?: "暂无描述",
-                                    imageUrl = selectedImageUri.toString(),
-                                    artifactId = result?.artifactId
-                                )
-                                showResultSheet = true
+                                val resultResponse = NetworkModule.api.getDetectTaskResult(token, taskId)
+                                if (resultResponse.code == 200 && resultResponse.data != null) {
+                                    val top = resultResponse.data.detectedArtifacts?.firstOrNull()
+                                    val descriptionText = buildString {
+                                        append("识别状态: ${resultResponse.data.status}")
+                                        if (top?.label?.isNotBlank() == true) {
+                                            append("；识别目标: ${top.label}")
+                                        }
+                                        append("。若暂未关联到文物库，系统将进入临时详情页展示本次识别文本。")
+                                    }
+                                    val bridgedArtifactId = top?.artifactId ?: DetectDetailBridge.save(
+                                        DetectionResult(
+                                            label = top?.label ?: "未知文物",
+                                            confidence = top?.confidence ?: 0f,
+                                            description = descriptionText,
+                                            imageUrl = resultResponse.data.imageUrl ?: selectedImageUri.toString(),
+                                            artifactId = null
+                                        )
+                                    )
+                                    detectionResult = DetectionResult(
+                                        label = top?.label ?: "未知文物",
+                                        confidence = top?.confidence ?: 0f,
+                                        description = descriptionText,
+                                        imageUrl = resultResponse.data.imageUrl ?: selectedImageUri.toString(),
+                                        artifactId = bridgedArtifactId
+                                    )
+                                    showResultSheet = true
+                                    isCompleted = true
+                                } else {
+                                    errorMsg = resultResponse.message.ifBlank { "获取检测结果失败" }
+                                }
                             } else if (status == "FAILED") {
                                 errorMsg = "识别失败，请重试"
                                 break
@@ -300,9 +495,97 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val messages = mutableStateListOf<ChatMessage>()
     var isSending by mutableStateOf(false)
     var errorMsg by mutableStateOf("")
+    private var pendingDetectContext: String? = null
+    private var pinnedArtifactContext: String? = null
+    private var pinnedArtifactId: Long? = null
+    private var activeConversationId: Long? = null
+    private var restoredConversationId: Long? = null
 
     init {
         messages.add(ChatMessage(UUID.randomUUID().toString(), ChatRole.AI, "您好，我是稽古云语智能助手。"))
+    }
+
+    fun seedDetectContext(context: String) {
+        val normalized = context.trim()
+        if (normalized.isBlank()) return
+        if (pendingDetectContext == normalized) return
+        pendingDetectContext = normalized
+
+        val contextHint = "已关联识别结果：$normalized"
+        if (messages.none { it.role == ChatRole.AI && it.content == contextHint }) {
+            messages.add(ChatMessage(UUID.randomUUID().toString(), ChatRole.AI, contextHint))
+        }
+    }
+
+    fun seedArtifactContext(artifactId: Long) {
+        if (pinnedArtifactId == artifactId && !pinnedArtifactContext.isNullOrBlank()) {
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val artifact = if (artifactId < 0) {
+                    LocalSeedArtifactStore.byId(artifactId) ?: DetectDetailBridge.get(artifactId)
+                } else {
+                    val response = NetworkModule.api.getArtifactDetail(artifactId)
+                    if (response.code == 200) response.data else null
+                }
+
+                if (artifact != null) {
+                    pinnedArtifactId = artifactId
+                    pinnedArtifactContext = buildString {
+                        append("[识别上下文]\n")
+                        append("识别结果文物名称: ${artifact.name}\n")
+                        append("artifact name: ${artifact.name}\n")
+                        append("年代: ${artifact.era.ifBlank { "未知" }}\n")
+                        append("类别: ${artifact.category.ifBlank { "未知" }}\n")
+                        append("馆藏地: ${artifact.location.ifBlank { "未知" }}\n")
+                        if (artifact.tags.isNotEmpty()) {
+                            append("标签: ${artifact.tags.joinToString("、")}\n")
+                        }
+                        val desc = artifact.description.ifBlank { "暂无描述" }
+                        append("简介: ${desc}\n")
+                        append("artifact description: ${desc}")
+                    }
+
+                    val contextHint = "已关联文物：${artifact.name}（${artifact.era.ifBlank { "年代待考" }}）"
+                    if (messages.none { it.role == ChatRole.AI && it.content == contextHint }) {
+                        messages.add(ChatMessage(UUID.randomUUID().toString(), ChatRole.AI, contextHint))
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun restoreConversation(conversationId: Long) {
+        if (restoredConversationId == conversationId) {
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val token = auth.bearerToken()
+                val response = NetworkModule.api.getDialogConversationContext(token, conversationId)
+                if (response.code == 200 && response.data != null) {
+                    activeConversationId = conversationId
+                    restoredConversationId = conversationId
+                    messages.clear()
+                    messages.add(ChatMessage(UUID.randomUUID().toString(), ChatRole.AI, "您好，我是稽古云语智能助手。"))
+
+                    response.data.forEach { turn ->
+                        val role = when (turn.role.uppercase()) {
+                            "USER" -> ChatRole.USER
+                            else -> ChatRole.AI
+                        }
+                        messages.add(ChatMessage(UUID.randomUUID().toString(), role, turn.content))
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun sendMessage(text: String, imageUri: Uri? = null, artifactId: Long? = null) {
@@ -327,41 +610,45 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
 
+                val systemContexts = mutableListOf<DialogMessage>()
+                if (!pendingDetectContext.isNullOrBlank()) {
+                    systemContexts.add(
+                        DialogMessage(
+                            role = "SYSTEM",
+                            content = "[识别上下文]\n${pendingDetectContext}"
+                        )
+                    )
+                }
+                if (!pinnedArtifactContext.isNullOrBlank()) {
+                    systemContexts.add(
+                        DialogMessage(
+                            role = "SYSTEM",
+                            content = pinnedArtifactContext!!
+                        )
+                    )
+                }
+
+                val contextWithDetect = systemContexts + contextHistory
+
                 // 提交对话请求
                 val taskResponse = NetworkModule.api.createDialogRequest(
                     token = token,
-                    req = DialogRequest(query = text, artifactId = artifactId, contextHistory = contextHistory)
+                    req = DialogRequest(
+                        query = text,
+                        artifactId = artifactId,
+                        conversationId = activeConversationId,
+                        contextHistory = contextWithDetect
+                    )
                 )
 
                 if (taskResponse.code == 200 && taskResponse.data != null) {
-                    val taskId = taskResponse.data.taskId
-
-                    // 轮询结果
-                    var isCompleted = false
-                    var retryCount = 0
-                    val maxRetries = 15
-
-                    while (!isCompleted && retryCount < maxRetries) {
-                        delay(2000)
-                        val statusResponse = NetworkModule.api.getDialogResult(token, taskId)
-
-                        if (statusResponse.code == 200 && statusResponse.data != null) {
-                            val status = statusResponse.data.status
-                            if (status == "COMPLETED") {
-                                isCompleted = true
-                                val replyText = statusResponse.data.reply ?: "抱歉，我没有理解您的问题。"
-                                messages.add(ChatMessage(UUID.randomUUID().toString(), ChatRole.AI, replyText))
-                            } else if (status == "FAILED") {
-                                errorMsg = "对话失败，请重试"
-                                break
-                            }
-                        }
-                        retryCount++
+                    val replyText = taskResponse.data.aiResponse.ifBlank { "抱歉，我没有理解您的问题。" }
+                    messages.add(ChatMessage(UUID.randomUUID().toString(), ChatRole.AI, replyText))
+                    if (taskResponse.data.conversationId != null) {
+                        activeConversationId = taskResponse.data.conversationId
+                        restoredConversationId = taskResponse.data.conversationId
                     }
-
-                    if (!isCompleted && errorMsg.isEmpty()) {
-                        errorMsg = "对话超时，请稍后重试"
-                    }
+                    pendingDetectContext = null
                 } else {
                     errorMsg = taskResponse.message.ifBlank { "发送失败" }
                 }
@@ -372,7 +659,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                messages.add(ChatMessage(UUID.randomUUID().toString(), ChatRole.AI, "网络异常: ${e.message}"))
+                val errorText = when (e) {
+                    is SocketTimeoutException, is InterruptedIOException ->
+                        "本次回复耗时较长，请稍候再看历史足迹，结果不会丢失。"
+                    else -> "请求失败：${e.message ?: "未知异常"}"
+                }
+                errorMsg = errorText
+                messages.add(ChatMessage(UUID.randomUUID().toString(), ChatRole.AI, errorText))
             } finally {
                 isSending = false
             }
@@ -391,6 +684,59 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 e.printStackTrace()
             }
         }
+    }
+}
+
+class FavoritesViewModel(application: Application) : AndroidViewModel(application) {
+    private val auth = AuthRepository.getInstance(application)
+    private val favoriteRepository = FavoriteRepository.getInstance(application)
+
+    val favorites = mutableStateListOf<Artifact>()
+    var isLoading by mutableStateOf(false)
+    var errorMsg by mutableStateOf("")
+
+    private fun userFavoriteKey(): String {
+        val user = auth.currentUser.value
+        return user?.username ?: user?.id ?: "guest"
+    }
+
+    fun loadFavorites() {
+        viewModelScope.launch {
+            isLoading = true
+            errorMsg = ""
+            favorites.clear()
+            try {
+                val ids = favoriteRepository.getFavoriteIds(userFavoriteKey()).toList().asReversed()
+                for (id in ids) {
+                    val artifact = if (id < 0) {
+                        LocalSeedArtifactStore.byId(id) ?: DetectDetailBridge.get(id)
+                    } else {
+                        try {
+                            val response = NetworkModule.api.getArtifactDetail(id)
+                            if (response.code == 200) response.data else null
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                    if (artifact != null) {
+                        favorites.add(artifact)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                errorMsg = "加载收藏失败: ${e.message}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun removeFavorite(artifactId: Long) {
+        val key = userFavoriteKey()
+        if (favoriteRepository.isFavorite(key, artifactId)) {
+            favoriteRepository.toggleFavorite(key, artifactId)
+        }
+        favorites.removeAll { it.id == artifactId }
     }
 }
 
@@ -574,10 +920,23 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     
     var isLoadingFeedbacks by mutableStateOf(false)
     var isLoadingUsers by mutableStateOf(false)
+    var isSubmittingArtifact by mutableStateOf(false)
+    var isAuditingArtifact by mutableStateOf(false)
+    var isUpdatingFeedback by mutableStateOf(false)
+    var operationHint by mutableStateOf("")
     var errorMsg by mutableStateOf("")
     // 新增属性
     var pendingArtifacts = mutableStateListOf<Artifact>()
     var dashboardOverview by mutableStateOf<DashboardOverview?>(null)
+    val selectableCategories = mutableStateListOf<String>()
+
+    fun loadSelectableCategories() {
+        viewModelScope.launch {
+            if (selectableCategories.isEmpty()) {
+                selectableCategories.addAll(ArtifactCategoryCatalog.fallback)
+            }
+        }
+    }
 
     // 加载待审核文物
     fun loadPendingArtifacts(refresh: Boolean = false) {
@@ -601,54 +960,78 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     // 审核文物
     fun auditArtifact(id: Long, status: String, notes: String? = null, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            isAuditingArtifact = true
+            operationHint = if (status == "APPROVED") "正在审批通过..." else "正在审批拒绝..."
+            val startedAt = System.currentTimeMillis()
             try {
                 val token = auth.bearerToken()
                 val response = NetworkModule.api.auditArtifact(token, id, UpdateStatusRequest(status, notes))
                 if (response.code == 200) {
+                    val elapsed = System.currentTimeMillis() - startedAt
+                    if (elapsed < 600) delay(600 - elapsed)
                     onSuccess()
                     loadPendingArtifacts() // 刷新列表
+                    operationHint = "审批完成"
                 } else {
                     errorMsg = response.message.ifBlank { "审核失败" }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 errorMsg = "网络异常: ${e.message}"
+            } finally {
+                isAuditingArtifact = false
             }
         }
     }
 
     // 新增文物
-    fun createArtifact(request: ArchaeologySubmitRequest, onSuccess: (Artifact) -> Unit) {
+    fun createArtifact(request: AdminArtifactRequest, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            isSubmittingArtifact = true
+            operationHint = "正在上传文物..."
+            val startedAt = System.currentTimeMillis()
             try {
                 val token = auth.bearerToken()
                 val response = NetworkModule.api.createArtifact(token, request)
-                if (response.code == 200 && response.data != null) {
-                    onSuccess(response.data)
+                if (response.code in 200..299) {
+                    val elapsed = System.currentTimeMillis() - startedAt
+                    if (elapsed < 600) delay(600 - elapsed)
+                    onSuccess()
+                    operationHint = "上传完成"
                 } else {
                     errorMsg = response.message.ifBlank { "创建文物失败" }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 errorMsg = "网络异常: ${e.message}"
+            } finally {
+                isSubmittingArtifact = false
             }
         }
     }
 
     // 更新文物
-    fun updateArtifact(id: Long, request: ArchaeologySubmitRequest, onSuccess: () -> Unit) {
+    fun updateArtifact(id: Long, request: AdminArtifactRequest, onSuccess: () -> Unit) {
         viewModelScope.launch {
+            isSubmittingArtifact = true
+            operationHint = "正在更新文物..."
+            val startedAt = System.currentTimeMillis()
             try {
                 val token = auth.bearerToken()
                 val response = NetworkModule.api.updateArtifact(token, id, request)
                 if (response.code == 200) {
+                    val elapsed = System.currentTimeMillis() - startedAt
+                    if (elapsed < 600) delay(600 - elapsed)
                     onSuccess()
+                    operationHint = "更新完成"
                 } else {
                     errorMsg = response.message.ifBlank { "更新文物失败" }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 errorMsg = "网络异常: ${e.message}"
+            } finally {
+                isSubmittingArtifact = false
             }
         }
     }
@@ -695,7 +1078,14 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 val token = auth.bearerToken()
-                val response = NetworkModule.api.getAllDialogHistories(token, userId = userId, artifactId = artifactId)
+                val response = NetworkModule.api.getAllDialogHistories(
+                    token = token,
+                    page = 0,
+                    size = 200,
+                    recentHours = 24,
+                    userId = userId,
+                    artifactId = artifactId
+                )
                 if (response.code == 200 && response.data != null) {
                     allDialogHistories.clear()
                     allDialogHistories.addAll(response.data.list)
@@ -736,7 +1126,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             errorMsg = ""
             try {
                 val token = auth.bearerToken()
-                val response = NetworkModule.api.getAdminUsers(token)
+                val response = NetworkModule.api.getAdminUsers(token, includeInactive = true, page = 0, size = 200)
                 if (response.code == 200 && response.data != null) {
                     users.clear()
                     users.addAll(response.data.list)
@@ -754,16 +1144,22 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateFeedbackStatus(id: Long, status: String) {
         viewModelScope.launch {
+            isUpdatingFeedback = true
+            operationHint = "正在更新反馈状态..."
             try {
                 val token = auth.bearerToken()
                 val response = NetworkModule.api.updateFeedbackStatus(token, id, UpdateStatusRequest(status))
                 if (response.code == 200) {
                     loadFeedbacks()
+                    operationHint = "反馈状态已更新"
                 } else {
                     errorMsg = response.message.ifBlank { "更新失败" }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                errorMsg = "网络异常: ${e.message}"
+            } finally {
+                isUpdatingFeedback = false
             }
         }
     }

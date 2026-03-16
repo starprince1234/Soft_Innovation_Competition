@@ -25,8 +25,17 @@
 
     <div class="card">
       <h2>基础地址配置</h2>
-      <div class="row"><input id="javaBase" value="http://localhost" placeholder="Java/Nginx 基础地址" /></div>
+      <div class="row"><input id="javaBase" value="http://localhost:8080" placeholder="Java/Nginx 基础地址" /></div>
       <div class="row"><input id="pythonBase" value="http://localhost:8000" placeholder="Python 基础地址" /></div>
+    </div>
+
+    <div class="card">
+      <h2>认证（Java）</h2>
+      <div class="row"><input id="loginUsername" value="tester" placeholder="用户名" /></div>
+      <div class="row"><input id="loginPassword" value="123456" placeholder="密码" type="password" /></div>
+      <div class="row"><button onclick="registerAndLogin()">注册并登录，写入 Token</button></div>
+      <div class="row"><input id="authToken" placeholder="Bearer Token（自动填充）" /></div>
+      <pre id="authOutput">等待登录...</pre>
     </div>
 
     <div class="card">
@@ -40,15 +49,14 @@
 
     <div class="card">
       <h2>对话接口测试（Java）</h2>
-      <div class="row"><input id="dialogUserId" placeholder="userId" value="1" /></div>
-      <div class="row"><textarea id="dialogBody">{"content":"你好，给我一句测试回复"}</textarea></div>
+      <div class="row"><textarea id="dialogBody">{"query":"你好，给我一句测试回复","artifactId":1}</textarea></div>
       <div class="row"><button onclick="testDialog()">发送 /api/v1/dialog/requests</button></div>
       <pre id="dialogOutput">等待请求...</pre>
     </div>
 
     <div class="card">
       <h2>检测任务创建（Java）</h2>
-      <div class="row"><textarea id="detectBody">{"artifactId":1}</textarea></div>
+      <div class="row"><textarea id="detectBody">{"imageBase64":"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AApMBgUPhR38AAAAASUVORK5CYII="}</textarea></div>
       <div class="row"><button onclick="testDetect()">发送 /api/v1/detect/tasks</button></div>
       <pre id="detectOutput">等待请求...</pre>
     </div>
@@ -70,6 +78,37 @@
     }
 
     function pretty(obj) { return JSON.stringify(obj, null, 2); }
+
+    function getAuthHeader() {
+      const raw = document.getElementById('authToken').value.trim();
+      if (!raw) return {};
+      return { Authorization: raw.startsWith('Bearer ') ? raw : ('Bearer ' + raw) };
+    }
+
+    async function registerAndLogin() {
+      const base = document.getElementById('javaBase').value.trim().replace(/\/$/, '');
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const out = document.getElementById('authOutput');
+      out.textContent = '请求中...';
+      try {
+        await requestJson(base + '/api/v1/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ username, password })
+        });
+        const loginResult = await requestJson(base + '/api/v1/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password })
+        });
+        const token = loginResult?.data?.data?.token;
+        if (token) {
+          document.getElementById('authToken').value = 'Bearer ' + token;
+        }
+        out.textContent = pretty(loginResult);
+      } catch (e) {
+        out.textContent = '认证失败：\n' + e;
+      }
+    }
 
     async function checkJavaHealth() {
       const base = document.getElementById('javaBase').value.trim().replace(/\/$/, '');
@@ -97,14 +136,14 @@
 
     async function testDialog() {
       const base = document.getElementById('javaBase').value.trim().replace(/\/$/, '');
-      const userId = document.getElementById('dialogUserId').value.trim();
       const bodyText = document.getElementById('dialogBody').value.trim();
       const out = document.getElementById('dialogOutput');
       out.textContent = '请求中...';
       try {
         const body = JSON.parse(bodyText);
-        const result = await requestJson(base + '/api/v1/dialog/requests?userId=' + encodeURIComponent(userId), {
+        const result = await requestJson(base + '/api/v1/dialog/requests', {
           method: 'POST',
+          headers: getAuthHeader(),
           body: JSON.stringify(body)
         });
         out.textContent = pretty(result);
@@ -122,6 +161,7 @@
         const body = JSON.parse(bodyText);
         const result = await requestJson(base + '/api/v1/detect/tasks', {
           method: 'POST',
+          headers: getAuthHeader(),
           body: JSON.stringify(body)
         });
         out.textContent = pretty(result);

@@ -28,11 +28,12 @@ public class UserAdminController {
     @GetMapping
     public ApiResponse<PageResponse<UserResponse>> list(
             @RequestParam(required = false) String username,
+            @RequestParam(defaultValue = "true") boolean includeInactive,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String direction) {
-        PageResponse<User> users = userAdminService.listUsers(username, page, size, sortBy, direction);
+        PageResponse<User> users = userAdminService.listUsers(username, includeInactive, page, size, sortBy, direction);
         PageResponse<UserResponse> response = PageResponse.of(
                 users.getList().stream().map(UserResponse::from).toList(),
                 users.getTotalElements(), users.getCurrentPage(), users.getPageSize());
