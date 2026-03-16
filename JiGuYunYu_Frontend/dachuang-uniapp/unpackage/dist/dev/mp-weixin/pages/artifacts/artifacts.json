@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "宝库珍藏",
-  "enablePullDownRefresh": true,
-  "usingComponents": {
-    "empty-state": "../../components/EmptyState/EmptyState",
-    "loading": "../../components/Loading/Loading"
-  }
-}
