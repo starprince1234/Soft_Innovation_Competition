@@ -1,0 +1,26 @@
+<view class="login-container">
+  <view class="logo-section">
+    <image class="logo" src="../../static/images/logo.png" mode="aspectFit"></image>
+    <view class="app-name">稽古云语</view>
+    <view class="slogan">文物识别与智能问答</view>
+  </view>
+  
+  <view class="login-section">
+    <button class="wechat-login-btn" bindtap="handleWechatLogin">
+      <image class="wechat-icon" src="../../static/images/wechat-icon.png" mode="aspectFit"></image>
+      <text class="wechat-login-text">微信授权登录</text>
+    </button>
+  </view>
+  
+  <view class="register-tip">
+    <text>还没有账号？</text>
+    <navigator url="/pages/register/register" class="register-link">立即注册</navigator>
+  </view>
+  
+  <view class="footer">
+    <text class="footer-text">登录即表示您同意</text>
+    <navigator url="#" class="footer-link">《用户协议》</navigator>
+    <text class="footer-text">和</text>
+    <navigator url="#" class="footer-link">《隐私政策》</navigator>
+  </view>
+</view>

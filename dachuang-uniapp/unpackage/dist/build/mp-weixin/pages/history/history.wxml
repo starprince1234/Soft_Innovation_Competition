@@ -1,0 +1,32 @@
+<view class="history-page">
+  <view class="history-header">
+    <text class="header-title">识别记录</text>
+  </view>
+  
+  <view class="history-content">
+    <block wx:if="{{historyList.length > 0}}">
+      <view class="history-item" wx:for="{{historyList}}" wx:key="index">
+        <view class="item-header">
+          <text class="item-title">{{item.name || '未命名文物'}}</text>
+          <text class="item-time">{{formatTime(item.timestamp)}}</text>
+        </view>
+        <view class="item-content">
+          <image class="item-image" src="{{item.image}}" mode="aspectFill"></image>
+          <view class="item-info">
+            <text class="item-desc">{{item.description || '暂无描述'}}</text>
+          </view>
+        </view>
+        <view class="item-footer">
+          <button class="detail-btn" data-id="{{item.id}}" bindtap="goToDetail">查看详情</button>
+          <button class="delete-btn" data-index="{{index}}" bindtap="deleteItem">删除记录</button>
+        </view>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="empty-state">
+        <image class="empty-image" src="/static/images/empty.png" mode="aspectFit"></image>
+        <text class="empty-text">暂无识别记录</text>
+      </view>
+    </block>
+  </view>
+</view>

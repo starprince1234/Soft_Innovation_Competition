@@ -1,0 +1,90 @@
+<view class="chat-page">
+  <view class="chat-header">
+    <view class="header-left">
+      <text class="header-title">AI智能问答</text>
+      <text class="header-subtitle">基于文物知识的智能助手</text>
+    </view>
+    <view class="header-actions">
+      <view class="action-btn" bindtap="handleClearHistory">
+        <text class="action-icon">🗑️</text>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view
+    class="chat-content"
+    scroll-y="true"
+    scroll-into-view="{{scrollToView}}"
+    scroll-with-animation="true"
+  >
+    <view class="chat-list" id="chatList">
+      <view
+        class="chat-item"
+        id="msg-{{index}}"
+        class="{{msg.type}}"
+        wx:for="{{chatHistory}}"
+        wx:key="index"
+      >
+        <view class="chat-avatar" wx:if="msg.type === 'ai'">
+          <image class="avatar-image" src="/static/images/ai-avatar.png" mode="aspectFill"></image>
+        </view>
+        <view class="chat-message">
+          <view class="message-content">
+            <text class="message-text" wx:if="msg.type === 'user'">{{msg.content}}</text>
+            <rich-text class="message-text rich-text" wx:else nodes="{{formatMessage(msg.content)}}"></rich-text>
+          </view>
+          <text class="message-time">{{formatTime(msg.timestamp)}}</text>
+        </view>
+        <view class="chat-avatar" wx:if="msg.type === 'user'">
+          <image class="avatar-image" src="{{userInfo && userInfo.avatar ? userInfo.avatar : '/static/images/default-avatar.png'}}" mode="aspectFill"></image>
+        </view>
+      </view>
+
+      <view class="chat-item ai" wx:if="isLoading">
+        <view class="chat-avatar">
+          <image class="avatar-image" src="/static/images/ai-avatar.png" mode="aspectFill"></image>
+        </view>
+        <view class="chat-message">
+          <view class="message-content loading">
+            <view class="typing-indicator">
+              <view class="dot"></view>
+              <view class="dot"></view>
+              <view class="dot"></view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="chatHistory.length === 0 && !isLoading" class="empty-state">
+        <image class="empty-image" src="/static/images/empty-chat.png"></image>
+        <text class="empty-text">开始与AI对话吧</text>
+        <view class="quick-questions">
+          <text
+            class="question-item"
+            wx:for="{{quickQuestions}}"
+            wx:key="index"
+            bindtap="handleQuickQuestion(question)"
+          >
+            {{item}}
+          </text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="chat-input-bar">
+    <view class="input-wrapper">
+      <input
+        class="chat-input"
+        type="text"
+        value="{{inputMessage}}"
+        placeholder="输入您的问题..."
+        disabled="{{isLoading}}"
+        bindconfirm="handleSend"
+      />
+      <button class="send-btn" class="{{!canSend ? 'disabled' : ''}}" bindtap="handleSend">
+        <text class="send-icon">发送</text>
+      </button>
+    </view>
+  </view>
+</view>
