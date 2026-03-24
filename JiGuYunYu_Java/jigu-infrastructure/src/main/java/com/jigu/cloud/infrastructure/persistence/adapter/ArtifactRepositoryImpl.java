@@ -31,6 +31,14 @@ public class ArtifactRepositoryImpl implements ArtifactRepository {
     }
 
     @Override
+    public List<Artifact> findAllByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findAllByIdInAndDeletedFalse(ids);
+    }
+
+    @Override
     public Optional<Artifact> findByName(String name) {
         return jpaRepository.findByNameAndDeletedFalse(name);
     }

@@ -25,6 +25,8 @@ public interface ArtifactJpaRepository extends JpaRepository<Artifact, Long> {
 
         Optional<Artifact> findByIdAndDeletedFalse(Long id);
 
+        List<Artifact> findAllByIdInAndDeletedFalse(List<Long> ids);
+
         Page<Artifact> findByStatusAndDeletedFalse(String status, Pageable pageable);
 
     @Query("SELECT a FROM Artifact a WHERE "

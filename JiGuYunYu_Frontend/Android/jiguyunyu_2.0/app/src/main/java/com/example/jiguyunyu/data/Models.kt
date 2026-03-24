@@ -37,6 +37,10 @@ data class Artifact(
     val tags: List<String> = emptyList()
 )
 
+data class FavoriteStateResponse(
+    val favorite: Boolean
+)
+
 // 定义来源数据类
 data class RagSource(
     val source: String,

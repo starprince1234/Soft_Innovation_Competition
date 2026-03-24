@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "雅言反馈",
-  "enablePullDownRefresh": false,
-  "usingComponents": {
-    "custom-navbar": "../../components/CustomNavbar/CustomNavbar",
-    "loading": "../../components/Loading/Loading"
-  }
-}

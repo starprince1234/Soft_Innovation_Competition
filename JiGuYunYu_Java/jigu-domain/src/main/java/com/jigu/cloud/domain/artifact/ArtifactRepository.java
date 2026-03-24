@@ -11,6 +11,8 @@ public interface ArtifactRepository {
 
     Optional<Artifact> findById(Long id);
 
+    List<Artifact> findAllByIds(List<Long> ids);
+
     Optional<Artifact> findByName(String name);
 
     boolean existsByName(String name);
