@@ -332,29 +332,45 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
 class DetailViewModel(application: Application) : AndroidViewModel(application) {
     private val auth = AuthRepository.getInstance(application)
-    private val favoriteRepository = FavoriteRepository.getInstance(application)
 
     var artifact by mutableStateOf<Artifact?>(null)
     var isFavorite by mutableStateOf(false)
     var isLoading by mutableStateOf(false)
     var errorMsg by mutableStateOf("")
 
-    private fun userFavoriteKey(): String {
-        val user = auth.currentUser.value
-        return user?.username ?: user?.id ?: "guest"
-    }
-
     fun refreshFavoriteState(id: Long?) {
-        if (id == null) {
+        if (id == null || id < 0) {
             isFavorite = false
             return
         }
-        isFavorite = favoriteRepository.isFavorite(userFavoriteKey(), id)
+        viewModelScope.launch {
+            try {
+                val token = auth.bearerToken()
+                val response = NetworkModule.api.getFavoriteState(token, id)
+                isFavorite = response.code == 200 && response.data?.favorite == true
+            } catch (_: Exception) {
+                isFavorite = false
+            }
+        }
     }
 
-    fun toggleFavorite(id: Long): Boolean {
-        isFavorite = favoriteRepository.toggleFavorite(userFavoriteKey(), id)
-        return isFavorite
+    fun toggleFavorite(id: Long) {
+        if (id < 0) return
+        viewModelScope.launch {
+            try {
+                val token = auth.bearerToken()
+                val response = if (isFavorite) {
+                    NetworkModule.api.removeFavorite(token, id)
+                } else {
+                    NetworkModule.api.addFavorite(token, id)
+                }
+                if (response.code == 200 && response.data != null) {
+                    isFavorite = response.data.favorite
+                }
+            } catch (_: Exception) {
+                // 忽略异常，保留当前 UI 状态
+            }
+        }
     }
 
     fun loadArtifact(id: Long) {
@@ -689,16 +705,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
 class FavoritesViewModel(application: Application) : AndroidViewModel(application) {
     private val auth = AuthRepository.getInstance(application)
-    private val favoriteRepository = FavoriteRepository.getInstance(application)
 
     val favorites = mutableStateListOf<Artifact>()
     var isLoading by mutableStateOf(false)
     var errorMsg by mutableStateOf("")
-
-    private fun userFavoriteKey(): String {
-        val user = auth.currentUser.value
-        return user?.username ?: user?.id ?: "guest"
-    }
 
     fun loadFavorites() {
         viewModelScope.launch {
@@ -706,21 +716,12 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
             errorMsg = ""
             favorites.clear()
             try {
-                val ids = favoriteRepository.getFavoriteIds(userFavoriteKey()).toList().asReversed()
-                for (id in ids) {
-                    val artifact = if (id < 0) {
-                        LocalSeedArtifactStore.byId(id) ?: DetectDetailBridge.get(id)
-                    } else {
-                        try {
-                            val response = NetworkModule.api.getArtifactDetail(id)
-                            if (response.code == 200) response.data else null
-                        } catch (_: Exception) {
-                            null
-                        }
-                    }
-                    if (artifact != null) {
-                        favorites.add(artifact)
-                    }
+                val token = auth.bearerToken()
+                val response = NetworkModule.api.getFavorites(token)
+                if (response.code == 200 && response.data != null) {
+                    favorites.addAll(response.data)
+                } else {
+                    errorMsg = response.message.ifBlank { "加载收藏失败" }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -732,11 +733,16 @@ class FavoritesViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun removeFavorite(artifactId: Long) {
-        val key = userFavoriteKey()
-        if (favoriteRepository.isFavorite(key, artifactId)) {
-            favoriteRepository.toggleFavorite(key, artifactId)
+        viewModelScope.launch {
+            try {
+                val token = auth.bearerToken()
+                NetworkModule.api.removeFavorite(token, artifactId)
+            } catch (_: Exception) {
+                // 忽略删除异常，先更新本地列表防止页面卡顿
+            } finally {
+                favorites.removeAll { it.id == artifactId }
+            }
         }
-        favorites.removeAll { it.id == artifactId }
     }
 }
 

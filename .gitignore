@@ -34,3 +34,5 @@ JiGuYunYu_Java/deploy/data/
 # Logs and temp
 **/*.log
 **/*.tmp
+
+release/cloud/.env.prod

@@ -52,6 +52,28 @@ interface ApiService {
     @GET("api/v1/artifact/{id}")
     suspend fun getArtifactDetail(@Path("id") id: Long): ApiResponse<Artifact>
 
+    // --- 收藏 ---
+    @GET("api/v1/favorites")
+    suspend fun getFavorites(@Header("Authorization") token: String): ApiResponse<List<Artifact>>
+
+    @GET("api/v1/favorites/{artifactId}/exists")
+    suspend fun getFavoriteState(
+        @Header("Authorization") token: String,
+        @Path("artifactId") artifactId: Long
+    ): ApiResponse<FavoriteStateResponse>
+
+    @PUT("api/v1/favorites/{artifactId}")
+    suspend fun addFavorite(
+        @Header("Authorization") token: String,
+        @Path("artifactId") artifactId: Long
+    ): ApiResponse<FavoriteStateResponse>
+
+    @DELETE("api/v1/favorites/{artifactId}")
+    suspend fun removeFavorite(
+        @Header("Authorization") token: String,
+        @Path("artifactId") artifactId: Long
+    ): ApiResponse<FavoriteStateResponse>
+
     // --- 检测识别 ---
     @POST("api/v1/detect/tasks")
     suspend fun createDetectTask(@Header("Authorization") token: String, @Body req: DetectRequest): ApiResponse<DetectResultResponse>
