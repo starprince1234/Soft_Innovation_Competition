@@ -1,0 +1,21 @@
+.empty-state.data-v-00c0c74e {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+}
+.empty-state .empty-image.data-v-00c0c74e {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 32rpx;
+}
+.empty-state .empty-text.data-v-00c0c74e {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 40rpx;
+}
+.empty-state .empty-action.data-v-00c0c74e {
+  display: flex;
+  gap: 24rpx;
+}

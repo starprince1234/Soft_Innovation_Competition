@@ -24,41 +24,32 @@
 
 ## 项目结构
 
+本项目采用 `src/` 作为**唯一业务源码目录**（single source of truth）。
+root 同名业务目录与入口文件已移除，日常开发只允许修改 `src/` 下内容。
+
 ```
-├── common/                 # 公共模块
-│   ├── api/               # API接口
-│   ├── constants/         # 常量配置
-│   ├── directives/        # 自定义指令
-│   ├── styles/            # 全局样式
-│   └── utils/             # 工具函数
-├── components/            # 公共组件
-│   ├── CustomNavbar/      # 自定义导航栏
-│   ├── EmptyState/       # 空状态组件
-│   ├── ImageUploader/    # 图片上传组件
-│   ├── Loading/         # 加载组件
-│   ├── RatingSelector/  # 评分选择器
-│   └── ScanButton/     # 扫描按钮
-├── pages/               # 页面
-│   ├── index/          # 首页
-│   ├── login/          # 登录页
-│   ├── register/       # 注册页
-│   ├── result/         # 识别结果页
-│   ├── artifacts/      # 文物库页
-│   ├── artifact-detail/# 文物详情页
-│   ├── chat/           # AI对话页
-│   ├── feedback/        # 反馈页
-│   └── profile/        # 个人中心页
-├── stores/             # 状态管理
-│   ├── user.js         # 用户状态
-│   ├── chat.js         # 对话状态
-│   └── artifact.js     # 文物状态
-├── static/             # 静态资源
-├── App.vue             # 应用入口
-├── main.js             # 主入口文件
-├── manifest.json       # 应用配置
-├── pages.json          # 页面配置
-└── package.json        # 依赖配置
+├── src/                    # 唯一业务源码目录（请只在这里开发）
+│   ├── common/
+│   ├── components/
+│   ├── config/
+│   ├── pages/
+│   ├── static/
+│   ├── stores/
+│   ├── App.vue
+│   ├── main.js
+│   ├── manifest.json
+│   └── pages.json
+├── scripts/
+│   └── check-source-consistency.cjs   # src-only 结构校验
+├── dist/                   # 构建产物
+└── package.json
 ```
+
+### 结构保护机制
+
+运行 `dev:*` / `build:*` 前会自动执行 `npm run check:source-consistency`：
+- 若发现 root 出现业务源码目录（如 `common/`、`pages/`、`stores/`）或缺失核心 `src` 入口，会直接失败。
+- 这样可以在 CI 和本地统一阻断“误改 root 导致编译不生效”的问题。
 
 ## 技术栈
 
@@ -100,13 +91,13 @@ npm run build:h5
 ## 配置说明
 
 ### API配置
-在 `common/constants/index.js` 中配置API基础地址：
+在 `src/common/constants/index.js` 中配置API基础地址：
 ```javascript
 export const API_BASE_URL = 'https://your-api-domain.com/api/v1'
 ```
 
 ### 小程序配置
-在 `manifest.json` 中配置小程序appid等信息。
+在 `src/manifest.json` 中配置小程序 appid 等信息。
 
 ## API接口
 

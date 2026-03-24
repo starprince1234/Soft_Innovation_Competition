@@ -1,0 +1,72 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/history/history",
+    "pages/favorites/favorites",
+    "pages/settings/settings",
+    "pages/about/about",
+    "pages/help/help",
+    "pages/edit-profile/edit-profile",
+    "pages/login/login",
+    "pages/register/register",
+    "pages/result/result",
+    "pages/artifacts/artifacts",
+    "pages/chat/chat",
+    "pages/feedback/feedback",
+    "pages/profile/profile",
+    "pages/artifact-detail/artifact-detail"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "稽古云语",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#8B4513",
+    "backgroundColor": "#FFF8F0",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "鉴识",
+        "iconPath": "static/tabbar/scan.png",
+        "selectedIconPath": "static/tabbar/scan-active.png"
+      },
+      {
+        "pagePath": "pages/artifacts/artifacts",
+        "text": "宝库",
+        "iconPath": "static/tabbar/artifacts.png",
+        "selectedIconPath": "static/tabbar/artifacts-active.png"
+      },
+      {
+        "pagePath": "pages/chat/chat",
+        "text": "问答",
+        "iconPath": "static/tabbar/chat.png",
+        "selectedIconPath": "static/tabbar/chat-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "static/tabbar/profile.png",
+        "selectedIconPath": "static/tabbar/profile-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "您的位置信息将用于小程序位置接口的效果展示"
+    },
+    "scope.camera": {
+      "desc": "需要使用您的相机进行文物拍照识别"
+    },
+    "scope.writePhotosAlbum": {
+      "desc": "需要保存图片到您的相册"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "usingComponents": {}
+}

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "文物鉴识",
+  "enablePullDownRefresh": false,
+  "usingComponents": {
+    "scan-button": "../../components/ScanButton/ScanButton"
+  }
+}

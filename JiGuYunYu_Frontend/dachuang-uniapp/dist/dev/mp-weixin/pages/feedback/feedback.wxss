@@ -1,0 +1,247 @@
+.feedback-page.data-v-6cdbb6ab {
+  min-height: 100vh;
+  background-color: #F5F7FA;
+  padding-top: calc(var(--status-bar-height) + 88rpx);
+}
+.feedback-page .feedback-content.data-v-6cdbb6ab {
+  height: calc(100vh - var(--status-bar-height) - 88rpx);
+}
+.feedback-page .feedback-content .feedback-form.data-v-6cdbb6ab {
+  padding: 32rpx;
+}
+.feedback-page .feedback-content .feedback-form .form-section.data-v-6cdbb6ab {
+  margin-bottom: 36rpx;
+  background: #FFFFFF;
+  padding: 32rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+.feedback-page .feedback-content .feedback-form .form-section .section-title.data-v-6cdbb6ab {
+  display: block;
+  font-size: 30rpx;
+  color: #333333;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+  /* 修复：添加支持Emoji/特殊字符的兜底字体 */
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI Emoji", sans-serif;
+}
+.feedback-page .feedback-content .feedback-form .form-section .type-selector.data-v-6cdbb6ab {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24rpx;
+}
+.feedback-page .feedback-content .feedback-form .form-section .type-selector .type-item.data-v-6cdbb6ab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  padding: 40rpx 24rpx;
+  background: #F5F5F5;
+  border-radius: 16rpx;
+  border: 2rpx solid #E0E0E0;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.feedback-page .feedback-content .feedback-form .form-section .type-selector .type-item.data-v-6cdbb6ab:hover {
+  transform: translateY(-2rpx);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+.feedback-page .feedback-content .feedback-form .form-section .type-selector .type-item.active.data-v-6cdbb6ab {
+  background: #E8F0FE;
+  border-color: #1890FF;
+  box-shadow: 0 4rpx 12rpx rgba(24, 144, 255, 0.2);
+}
+.feedback-page .feedback-content .feedback-form .form-section .type-selector .type-item.active .type-label.data-v-6cdbb6ab {
+  color: #1890FF;
+}
+.feedback-page .feedback-content .feedback-form .form-section .type-selector .type-item .type-icon-container.data-v-6cdbb6ab {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: rgba(24, 144, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.feedback-page .feedback-content .feedback-form .form-section .type-selector .type-item .type-icon.data-v-6cdbb6ab {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #1890FF;
+  /* 修复：统一字体，避免符号渲染异常 */
+  font-family: "PingFang SC", "Segoe UI Emoji", sans-serif;
+}
+.feedback-page .feedback-content .feedback-form .form-section .type-selector .type-item .type-label.data-v-6cdbb6ab {
+  font-size: 28rpx;
+  color: #666666;
+  font-weight: 500;
+}
+.feedback-page .feedback-content .feedback-form .form-section .feedback-textarea.data-v-6cdbb6ab {
+  width: 100%;
+  min-height: 200rpx;
+  padding: 20rpx;
+  background: #F9F9F9;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333333;
+  line-height: 1.6;
+  border: 1rpx solid #E0E0E0;
+}
+.feedback-page .feedback-content .feedback-form .form-section .feedback-textarea.data-v-6cdbb6ab::-moz-placeholder {
+  color: #999999;
+}
+.feedback-page .feedback-content .feedback-form .form-section .feedback-textarea.data-v-6cdbb6ab::placeholder {
+  color: #999999;
+}
+.feedback-page .feedback-content .feedback-form .form-section .char-count.data-v-6cdbb6ab {
+  display: block;
+  text-align: right;
+  font-size: 24rpx;
+  color: #999999;
+  margin-top: 12rpx;
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-tip.data-v-6cdbb6ab {
+  display: block;
+  font-size: 24rpx;
+  color: #999999;
+  margin-top: 12rpx;
+}
+.feedback-page .feedback-content .feedback-form .form-section .form-input.data-v-6cdbb6ab {
+  width: 100%;
+  height: 88rpx;
+  background: #F9F9F9;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #333333;
+  border: 1rpx solid #E0E0E0;
+}
+.feedback-page .feedback-content .feedback-form .form-section .form-input.data-v-6cdbb6ab::-moz-placeholder {
+  color: #999999;
+}
+.feedback-page .feedback-content .feedback-form .form-section .form-input.data-v-6cdbb6ab::placeholder {
+  color: #999999;
+}
+.feedback-page .feedback-content .feedback-form .form-section .rating-container.data-v-6cdbb6ab {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+.feedback-page .feedback-content .feedback-form .form-section .rating-container .rating-label.data-v-6cdbb6ab {
+  font-size: 28rpx;
+  color: #333333;
+  font-weight: 500;
+}
+.feedback-page .feedback-content .feedback-form .form-section .rating-container .rating-stars.data-v-6cdbb6ab {
+  display: flex;
+  gap: 16rpx;
+}
+.feedback-page .feedback-content .feedback-form .form-section .rating-container .rating-stars .star.data-v-6cdbb6ab {
+  font-size: 48rpx;
+  color: #DDDDDD;
+  cursor: pointer;
+  transition: color 0.2s;
+  /* 修复：添加兜底字体，支持星级符号 */
+  font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI Emoji", serif;
+}
+.feedback-page .feedback-content .feedback-form .form-section .rating-container .rating-stars .star.active.data-v-6cdbb6ab {
+  color: #FFB800;
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container.data-v-6cdbb6ab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24rpx;
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .image-item.data-v-6cdbb6ab {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .image-item.data-v-6cdbb6ab:hover {
+  transform: translateY(-2rpx);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .image-item .uploaded-image.data-v-6cdbb6ab {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .image-item .delete-btn.data-v-6cdbb6ab {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 36rpx;
+  height: 36rpx;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .image-item .delete-btn.data-v-6cdbb6ab:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .upload-btn.data-v-6cdbb6ab {
+  width: 160rpx;
+  height: 160rpx;
+  border: 2rpx dashed #1890FF;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  background: #F0F7FF;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .upload-btn.data-v-6cdbb6ab:hover {
+  background: #E6F7FF;
+  border-color: #40A9FF;
+  transform: translateY(-2rpx);
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .upload-btn .upload-icon.data-v-6cdbb6ab {
+  font-size: 48rpx;
+  color: #1890FF;
+}
+.feedback-page .feedback-content .feedback-form .form-section .upload-container .upload-btn .upload-text.data-v-6cdbb6ab {
+  font-size: 24rpx;
+  color: #1890FF;
+}
+.feedback-page .feedback-content .feedback-form .submit-btn.data-v-6cdbb6ab {
+  width: 100%;
+  height: 96rpx;
+  background-color: #1890FF;
+  border-radius: 16rpx;
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: 600;
+  border: none;
+  margin-top: 48rpx;
+  box-shadow: 0 6rpx 16rpx rgba(24, 144, 255, 0.3);
+  transition: all 0.3s;
+}
+.feedback-page .feedback-content .feedback-form .submit-btn.data-v-6cdbb6ab:hover:not(.disabled) {
+  background-color: #40A9FF;
+  transform: translateY(-2rpx);
+  box-shadow: 0 8rpx 20rpx rgba(24, 144, 255, 0.4);
+}
+.feedback-page .feedback-content .feedback-form .submit-btn.data-v-6cdbb6ab:active:not(.disabled) {
+  transform: translateY(0);
+  box-shadow: 0 4rpx 12rpx rgba(24, 144, 255, 0.3);
+}
+.feedback-page .feedback-content .feedback-form .submit-btn.disabled.data-v-6cdbb6ab {
+  background-color: #E6F7FF;
+  color: #91D5FF;
+  box-shadow: none;
+  cursor: not-allowed;
+}
