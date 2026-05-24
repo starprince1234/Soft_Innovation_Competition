@@ -17,6 +17,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${providers.gradleProperty("API_BASE_URL").orElse("http://10.0.2.2:8080/").get()}\""
+        )
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -40,6 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {

@@ -56,8 +56,8 @@ cp .env.example .env
 | `INTERNAL_TOKEN` | Java ↔ Python 内部鉴权 | 随机字符串，两端必须一致 |
 | `QIANFAN_API_KEY` | 百度千帆 API Key | 千帆控制台获取 |
 | `QIANFAN_SECRET_KEY` | 百度千帆 Secret Key | 千帆控制台获取 |
-| `VLM_BASE_URL` | VLM 模型（Qwen3-VL-LoRA）地址 | AutoDL 公网地址 + `/v1` |
-| `VLM_API_KEY` | VLM API Key | vLLM 默认可用 `sk-123456` |
+| `VLM_BASE_URL` | VLM 模型（Qwen3-VL-LoRA）地址 | OpenAI-compatible API 地址，通常以 `/v1` 结尾 |
+| `VLM_API_KEY` | VLM API Key | 从模型服务或部署平台获取，生产环境放入 Secrets |
 | `BOS_ENDPOINT` | 百度 BOS 端点 | 如 `https://bj.bcebos.com` |
 | `BOS_ACCESS_KEY` | BOS Access Key | BOS 控制台获取 |
 | `BOS_SECRET_KEY` | BOS Secret Key | BOS 控制台获取 |

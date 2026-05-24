@@ -7,19 +7,22 @@ services:
       VLM_SSH_PORT: ${VLM_SSH_PORT}
       VLM_SSH_USER: ${VLM_SSH_USER}
       VLM_SSH_PASSWORD: ${VLM_SSH_PASSWORD}
-      VLM_TARGET_HOST: ${VLM_TARGET_HOST}
-      VLM_TARGET_PORT: ${VLM_TARGET_PORT}
-    command: >
-      sh -c "apk add --no-cache openssh-client sshpass && while true; do
-      echo '[vlm-tunnel] establishing ssh tunnel...';
-      sshpass -p \"$$VLM_SSH_PASSWORD\" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -N -L 0.0.0.0:$$VLM_TARGET_PORT:$$VLM_TARGET_HOST:$$VLM_TARGET_PORT -p $$VLM_SSH_PORT $$VLM_SSH_USER@$$VLM_SSH_HOST;
-      echo '[vlm-tunnel] tunnel dropped, retry in 2s';
-      sleep 2;
-      done"
+      VLM_REMOTE_API_PORT: ${VLM_REMOTE_API_PORT}
+      VLM_LOCAL_TUNNEL_PORT: ${VLM_LOCAL_TUNNEL_PORT}
+    command:
+      - sh
+      - -c
+      - >-
+        apk add --no-cache openssh-client sshpass &&
+        while true; do
+          echo '[vlm-tunnel] establishing ssh tunnel...';
+          sshpass -p "$$VLM_SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -N -L 0.0.0.0:$$VLM_LOCAL_TUNNEL_PORT:127.0.0.1:$$VLM_REMOTE_API_PORT -p $$VLM_SSH_PORT $$VLM_SSH_USER@$$VLM_SSH_HOST;
+          echo '[vlm-tunnel] tunnel dropped, retry in 2s';
+          sleep 2;
+        done
     restart: unless-stopped
     networks:
-      jigu-net:
-        ipv4_address: 172.28.0.10
+      - jigu-net
 
   mysql:
     image: mysql:8.0
@@ -73,6 +76,7 @@ services:
       VLM_API_KEY: ${VLM_API_KEY}
       VLM_MODEL_NAME: ${VLM_MODEL_NAME}
       VLM_TIMEOUT: ${VLM_TIMEOUT:-60.0}
+      VLM_ENABLE_THINKING: ${VLM_ENABLE_THINKING:-}
       QIANFAN_API_KEY: ${QIANFAN_API_KEY:-}
       QIANFAN_SECRET_KEY: ${QIANFAN_SECRET_KEY:-}
       QIANFAN_BASE_URL: ${QIANFAN_BASE_URL:-}
@@ -94,8 +98,6 @@ services:
         condition: service_healthy
       vlm-tunnel:
         condition: service_started
-    extra_hosts:
-      - "${VLM_TARGET_HOST}:172.28.0.10"
     volumes:
       - jigu_chroma_data:/app/chroma_data
       - jigu_sentence_cache:/app/.cache/sentence_transformers

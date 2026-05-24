@@ -1,5 +1,6 @@
 package com.example.jiguyunyu.data
 
+import com.example.jiguyunyu.BuildConfig
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
@@ -175,8 +176,7 @@ interface ApiService {
 }
 
 object NetworkModule {
-    // Cloud production endpoint for real-device testing.
-    private const val BASE_URL = "http://123.58.215.154:28080/"
+    private val BASE_URL = BuildConfig.API_BASE_URL
     private const val ENABLE_MOCK = false
     var authRepository: AuthRepository? = null
 

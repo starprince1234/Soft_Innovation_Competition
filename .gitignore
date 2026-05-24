@@ -1,8 +1,14 @@
 # OS/editor
 .DS_Store
 Thumbs.db
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 .vscode/
 .idea/
+
+# Local agent/operator files
+.agents/
 
 # Python
 **/__pycache__/
@@ -10,8 +16,11 @@ Thumbs.db
 **/.pytest_cache/
 **/.mypy_cache/
 **/.ruff_cache/
+**/.cache/
 **/.venv/
 **/venv/
+.venv/
+venv/
 
 # Java/Maven
 **/target/
@@ -19,20 +28,71 @@ Thumbs.db
 **/.project
 **/.settings/
 
-# Node
+# Node/frontend
 **/node_modules/
+**/.next/
+**/.nuxt/
+**/dist/
+**/build/
+**/coverage/
 
-# Runtime data and local volumes
+# Android/Gradle
+**/.gradle/
+**/local.properties
+**/*.apk
+**/*.aab
+**/*.ap_
+
+# Docker/local build cache
+.docker-buildx-cache/
+
+# Runtime data, vector stores, and local volumes
 backend-data/
 JiGuYunYu_Java/deploy/data/
+JiGuYunYu_Python/chroma_data/
+**/chroma_data/
 
 # Local environment files
 .env
 **/.env
 .env.backend
+.env.local
+.env.*.local
+*.env.local
+**/.env.local
+**/.env.*.local
+release/cloud/.env.prod
 
-# Logs and temp
+# Secrets/certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+
+# Local databases and dumps
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+
+# Logs, temp, and local archives
 **/*.log
 **/*.tmp
+*.tgz
+*.tar
+*.tar.gz
+*.zip
+scripts/_tmp_*
 
-release/cloud/.env.prod
+# Local one-off artifacts and remote operation drafts
+project_ppt_html_package/
+release/cloud/remote_apply_vlm36.sh
+release/cloud/remote_update_vlm_and_build.sh
+scripts/remote_apply_vlm36_opt.sh
+scripts/remote_detect_chain_check.sh
+scripts/remote_vlm_probe.sh

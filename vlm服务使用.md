@@ -2,13 +2,13 @@
 
 这个目录保存了已经部署好的 `Qwen3.5-35B-A3B-FP8` 文物考古学家模型的调用说明，以及一个本地可运行的测试脚本。
 
-## 已部署信息
+## 配置信息
 
 - 模型仓库：`Qwen/Qwen3.5-35B-A3B-FP8`
 - 对外模型名：`qwen3.5-35b-a3b-archaeology`
-- `base_url`：`https://u817542-t87v-f5e0a0bc.westd.seetacloud.com:8443/v1`
-- 健康检查：`https://u817542-t87v-f5e0a0bc.westd.seetacloud.com:8443/health`
-- `api_key`：`qwen-arch-jY4hFKUYBq7xq-h0feZNgzcADFfvJs4a`
+- `base_url`：通过环境变量 `VLM_BASE_URL` 配置，例如 `https://your-vlm-host.example.com/v1`
+- 健康检查：由模型服务提供方决定，常见形式为 `https://your-vlm-host.example.com/health`
+- `api_key`：通过环境变量 `VLM_API_KEY` 配置，不要写入仓库
 
 ## 模型能力设定
 
@@ -38,8 +38,8 @@
 ## curl 示例
 
 ```bash
-curl https://u817542-t87v-f5e0a0bc.westd.seetacloud.com:8443/v1/chat/completions \
-  -H "Authorization: Bearer qwen-arch-jY4hFKUYBq7xq-h0feZNgzcADFfvJs4a" \
+curl "$VLM_BASE_URL/chat/completions" \
+  -H "Authorization: Bearer $VLM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen3.5-35b-a3b-archaeology",
@@ -60,8 +60,8 @@ curl https://u817542-t87v-f5e0a0bc.westd.seetacloud.com:8443/v1/chat/completions
 ## 图片识别示例
 
 ```bash
-curl https://u817542-t87v-f5e0a0bc.westd.seetacloud.com:8443/v1/chat/completions \
-  -H "Authorization: Bearer qwen-arch-jY4hFKUYBq7xq-h0feZNgzcADFfvJs4a" \
+curl "$VLM_BASE_URL/chat/completions" \
+  -H "Authorization: Bearer $VLM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen3.5-35b-a3b-archaeology",
@@ -120,4 +120,4 @@ python3 test_qwen_arch_api.py \
 - `QWEN_ARCH_API_KEY`
 - `QWEN_ARCH_MODEL`
 
-如果不设，脚本会使用本 README 中的默认值。
+当前仓库不保存真实模型地址或密钥。如果不设环境变量，脚本应直接提示缺少配置；生产值应配置在 `.env`、GitHub Secrets 或部署平台环境变量中。

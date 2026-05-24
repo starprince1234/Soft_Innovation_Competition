@@ -34,9 +34,10 @@ class Settings(BaseSettings):
 
     # VLM Detector (Qwen3-VL-LoRA via OpenAI-compatible API)
     VLM_BASE_URL: Optional[str] = None          # e.g. https://xxx.seetacloud.com:8443/v1
-    VLM_API_KEY: Optional[str] = "sk-123456"
+    VLM_API_KEY: Optional[str] = None
     VLM_MODEL_NAME: str = "qwen3-vl-lora"
     VLM_TIMEOUT: float = 60.0
+    VLM_ENABLE_THINKING: Optional[bool] = None
 
     # Embedding (Sentence-BERT)
     EMBEDDING_MODEL: str = "paraphrase-multilingual-MiniLM-L12-v2"

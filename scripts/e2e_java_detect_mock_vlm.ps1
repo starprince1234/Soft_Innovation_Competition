@@ -1,6 +1,6 @@
 param(
     [string]$JavaBase = "http://127.0.0.1:8080",
-    [string]$ImagePath = "D:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao\test.jpeg",
+    [string]$ImagePath = "$PSScriptRoot\..\test.jpeg",
     [int]$PollMaxAttempts = 20,
     [int]$PollIntervalSeconds = 2,
     [string]$ExpectedBucket = "jiguyunyu1"

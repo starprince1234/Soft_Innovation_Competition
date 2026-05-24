@@ -1,3 +1,7 @@
+import base64
+import os
+import sys
+
 from openai import OpenAI
 
 # AutoDL 连接配置说明：
@@ -5,10 +9,15 @@ from openai import OpenAI
 # 2. 找到对应 6006 端口的 "公网地址"
 # 3. 将其填入下方 BASE_URL，并在末尾加上 /v1
 
-# 示例: BASE_URL = "https://u817542-xxxx.bjb2.seetacloud.com:8443/v1"
-# 请务必修改下面的地址！！！
-BASE_URL = "https://u817542-83de-33e3ef6c.bjb2.seetacloud.com:8443/v1" 
-API_KEY = "sk-123456" 
+BASE_URL = os.environ.get("VLM_BASE_URL")
+API_KEY = os.environ.get("VLM_API_KEY")
+MODEL_NAME = os.environ.get("VLM_MODEL_NAME", "qwen3-vl-lora")
+LOCAL_IMAGE_PATH = os.environ.get("VLM_TEST_IMAGE", "test.jpeg")
+
+if not BASE_URL or not API_KEY:
+    print("请先配置环境变量 VLM_BASE_URL 和 VLM_API_KEY。")
+    print("示例：VLM_BASE_URL=https://your-vlm-host.example.com/v1 VLM_API_KEY=your_vlm_api_key_here")
+    sys.exit(1)
 
 client = OpenAI(
     api_key=API_KEY,
@@ -28,7 +37,7 @@ except Exception as e:
 print("\n--- Test 1: Pure Text ---")
 try:
     completion = client.chat.completions.create(
-        model="qwen3-vl-lora",
+        model=MODEL_NAME,
         messages=[
             {"role": "user", "content": "你好，请回复'收到'。"}
         ],
@@ -44,15 +53,10 @@ try:
 except Exception as e:
     print(f"Text Test Failed: {e}")
 
-import base64
-
 # 读取本地图片并转换为 Base64
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
-
-# 本地图片路径
-LOCAL_IMAGE_PATH = "test.jpeg"
 
 print(f"\n--- Test 3: Local Image ({LOCAL_IMAGE_PATH}) ---")
 try:
@@ -66,7 +70,7 @@ try:
         
         print("Sending chat request with BASE64 IMAGE...")
         completion = client.chat.completions.create(
-            model="qwen3-vl-lora",
+            model=MODEL_NAME,
             messages=[
                 {"role": "user", "content": [
                     {"type": "text", "text": "你是专业的考古学家，要认真确定这张图片讲的是什么著名文物，给我详细讲讲？"},

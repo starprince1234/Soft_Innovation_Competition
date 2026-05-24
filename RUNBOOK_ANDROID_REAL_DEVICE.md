@@ -5,7 +5,7 @@
 - APK built from:
   - `JiGuYunYu_Frontend/Android/jiguyunyu_2.0/app/build/outputs/apk/debug/app-debug.apk`
 - Backend starts from project root:
-  - `d:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao`
+  - this repository root
 
 ## 2. Start Full Docker Backend (only VLM is mock)
 Optional but recommended before compose up (build Python image with persistent cache, dependency changes only):
@@ -54,12 +54,13 @@ Expected output includes:
 Expected: one device in `device` state (not `unauthorized`).
 
 ## 5. Make Phone Access Host Backend
-The app now uses host LAN URL in `Network.kt`:
-- `http://192.168.1.104:8080/`
+The app API URL is injected by Gradle `API_BASE_URL`.
+Default value:
+- `http://10.0.2.2:8080/`
 
 Requirements:
 - Phone and PC must be on the same Wi-Fi.
-- If your host WLAN IP changes, update `Network.kt` and reinstall APK.
+- If your host WLAN IP changes, rebuild with `-PAPI_BASE_URL=http://<host-lan-ip>:8080/` and reinstall APK.
 
 Optional fallback (when using USB): map phone localhost to host localhost:
 
@@ -79,7 +80,7 @@ Should show `tcp:8080 tcp:8080`.
 Install:
 
 ```powershell
-& "F:\Android\SDK\platform-tools\adb.exe" install -r "d:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao\JiGuYunYu_Frontend\Android\jiguyunyu_2.0\app\build\outputs\apk\debug\app-debug.apk"
+& "F:\Android\SDK\platform-tools\adb.exe" install -r ".\JiGuYunYu_Frontend\Android\jiguyunyu_2.0\app\build\outputs\apk\debug\app-debug.apk"
 ```
 
 Expected: `Success`.
@@ -108,7 +109,7 @@ Success criteria:
   - run `adb kill-server; adb start-server`
 - If app cannot access backend:
   - ensure phone and PC are in same Wi-Fi subnet
-  - verify host URL is reachable: `http://192.168.1.104:8080/api/v1/health`
+  - verify host URL is reachable: `http://<host-lan-ip>:8080/api/v1/health`
   - if still failing, use USB fallback: re-run `adb reverse tcp:8080 tcp:8080`
   - confirm Docker still healthy with `docker compose ... ps`
 - If detect fails:
@@ -123,8 +124,8 @@ This is the full sequence for "remove old debug APK -> build fresh APK -> instal
 Run in PowerShell from any directory:
 
 ```powershell
-$root = "d:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao"
-$proj = "d:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao\JiGuYunYu_Frontend\Android\jiguyunyu_2.0"
+$root = "<repo-root>"
+$proj = "$root\JiGuYunYu_Frontend\Android\jiguyunyu_2.0"
 $apk = "$proj\app\build\outputs\apk\debug\app-debug.apk"
 $adb = "F:\Android\SDK\platform-tools\adb.exe"
 ```
@@ -176,7 +177,7 @@ Set-Location $proj
 ### 9.2 One-shot command
 
 ```powershell
-$root = "d:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao"; $proj = "d:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao\JiGuYunYu_Frontend\Android\jiguyunyu_2.0"; $apk = "$proj\app\build\outputs\apk\debug\app-debug.apk"; $adb = "F:\Android\SDK\platform-tools\adb.exe"; if (Test-Path $apk) { Remove-Item -Force $apk }; Set-Location $proj; .\gradlew.bat clean assembleDebug; & $adb start-server; & $adb devices; & $adb reverse tcp:8080 tcp:8080; & $adb uninstall com.example.jiguyunyu; & $adb install -r $apk; & $adb shell am start -n com.example.jiguyunyu/.MainActivity
+$root = "<repo-root>"; $proj = "$root\JiGuYunYu_Frontend\Android\jiguyunyu_2.0"; $apk = "$proj\app\build\outputs\apk\debug\app-debug.apk"; $adb = "F:\Android\SDK\platform-tools\adb.exe"; if (Test-Path $apk) { Remove-Item -Force $apk }; Set-Location $proj; .\gradlew.bat clean assembleDebug; & $adb start-server; & $adb devices; & $adb reverse tcp:8080 tcp:8080; & $adb uninstall com.example.jiguyunyu; & $adb install -r $apk; & $adb shell am start -n com.example.jiguyunyu/.MainActivity
 ```
 
 ### 9.3 Real-device debugging helpers

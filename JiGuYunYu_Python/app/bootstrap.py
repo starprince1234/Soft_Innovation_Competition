@@ -60,9 +60,10 @@ def _build_detector() -> DetectorPort:
         )
         return VLMDetector(
             base_url=settings.VLM_BASE_URL,
-            api_key=settings.VLM_API_KEY or "sk-123456",
+            api_key=settings.VLM_API_KEY,
             model=settings.VLM_MODEL_NAME,
             timeout=settings.VLM_TIMEOUT,
+            enable_thinking=settings.VLM_ENABLE_THINKING,
         )
     logger.warning("detector: YoloDetector(stub)  VLM_BASE_URL not set")
     return YoloDetector()

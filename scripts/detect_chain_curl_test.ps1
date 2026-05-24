@@ -1,11 +1,11 @@
 param(
-    [string]$ImagePath = "D:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao\test.jpeg",
-    [string]$ModelBase = "https://u817542-83de-33e3ef6c.bjb2.seetacloud.com:8443/v1",
-    [string]$ModelApiKey = "sk-123456",
+    [string]$ImagePath = "$PSScriptRoot\..\test.jpeg",
+    [string]$ModelBase = $env:VLM_BASE_URL,
+    [string]$ModelApiKey = $env:VLM_API_KEY,
     [string]$PythonBase = "http://127.0.0.1:8000",
     [string]$InternalToken = "your_internal_token_123456",
-    [string]$PythonEnvFile = "D:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao\JiGuYunYu_Python\.env",
-    [string]$PythonExe = "d:/VScodeProjects/JiGuYunYu_3_8_anzhuoliantiao/.venv/Scripts/python.exe"
+    [string]$PythonEnvFile = "$PSScriptRoot\..\JiGuYunYu_Python\.env",
+    [string]$PythonExe = "python"
 )
 
 function Import-DotEnv([string]$Path) {
@@ -30,6 +30,11 @@ function Import-DotEnv([string]$Path) {
 }
 
 Import-DotEnv -Path $PythonEnvFile
+
+if (-not $ModelBase -or -not $ModelApiKey) {
+    Write-Error "VLM_BASE_URL and VLM_API_KEY must be set in the environment or passed as parameters."
+    exit 1
+}
 
 if (-not (Test-Path $ImagePath)) {
     Write-Error "Image not found: $ImagePath"

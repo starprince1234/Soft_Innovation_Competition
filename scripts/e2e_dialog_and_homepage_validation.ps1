@@ -1,6 +1,6 @@
 param(
     [string]$JavaBase = "http://127.0.0.1:8080",
-    [string]$SeedScript = "d:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao\scripts\seed_homepage_artifact_from_assets.ps1",
+    [string]$SeedScript = "$PSScriptRoot\seed_homepage_artifact_from_assets.ps1",
     [string]$SeedArtifactName = "E2E-Artifact-QingTongShenShu",
     [string]$ImagePath = "",
     [string]$TextPath = ""
@@ -25,7 +25,8 @@ $auth = @{ Authorization = "Bearer $token"; "Content-Type" = "application/json" 
 
 Write-Host "[2/6] Upload test image via detect API (backend object storage path)..."
 if (-not $ImagePath) {
-    $ImagePath = (Get-ChildItem -LiteralPath (Join-Path (Get-Location) "assets") -File -Filter "*.png" | Sort-Object Name | Select-Object -First 1).FullName
+    $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")
+    $ImagePath = (Get-ChildItem -LiteralPath (Join-Path $repoRoot "assets") -File -Filter "*.png" | Sort-Object Name | Select-Object -First 1).FullName
 }
 if (-not (Test-Path -LiteralPath $ImagePath)) {
     throw "Image not found for detect upload: $ImagePath"

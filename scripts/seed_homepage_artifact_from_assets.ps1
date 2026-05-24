@@ -1,5 +1,5 @@
 param(
-    [string]$EnvFile = "d:\VScodeProjects\JiGuYunYu_3_8_anzhuoliantiao\.env.backend",
+    [string]$EnvFile = "$PSScriptRoot\..\.env.backend",
     [string]$ImagePath = "",
     [string]$TextPath = "",
     [string]$ArtifactName = "E2E-Artifact-QingTongShenShu",
@@ -7,7 +7,7 @@ param(
     [string]$Location = "SanXingDui",
     [string]$Tags = "test,qingtong-shenshu,homepage",
     [string]$Status = "APPROVED",
-    [string]$PythonExe = "d:/VScodeProjects/JiGuYunYu_3_8_anzhuoliantiao/.venv/Scripts/python.exe",
+    [string]$PythonExe = "python",
     [string]$ImageUrlOverride = ""
 )
 
@@ -17,7 +17,8 @@ function Resolve-AssetPath([string]$CandidatePath, [string]$Pattern) {
     if ($CandidatePath -and (Test-Path -LiteralPath $CandidatePath)) {
         return (Resolve-Path -LiteralPath $CandidatePath).Path
     }
-    $assetsDir = Join-Path (Get-Location) "assets"
+    $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")
+    $assetsDir = Join-Path $repoRoot "assets"
     if (-not (Test-Path -LiteralPath $assetsDir)) {
         throw "Assets directory not found: $assetsDir"
     }
@@ -75,7 +76,9 @@ $ossEndpoint = $env:BOS_ENDPOINT
 if (-not $ossEndpoint) { throw "BOS_ENDPOINT missing in env" }
 
 function Invoke-OssRoundTrip([string]$Endpoint) {
-    return (& $PythonExe .\scripts\oss_roundtrip_test.py `
+    $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")
+    $ossScript = Join-Path $repoRoot "scripts\oss_roundtrip_test.py"
+    return (& $PythonExe $ossScript `
       --image-path "$ImagePath" `
       --endpoint "$Endpoint" `
       --access-key "$env:BOS_ACCESS_KEY" `

@@ -55,7 +55,7 @@ services:
       UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
       # ---- VLM 检测模型（Qwen3-VL-LoRA）----
       VLM_BASE_URL: ${VLM_BASE_URL:-}
-      VLM_API_KEY: ${VLM_API_KEY:-sk-123456}
+      VLM_API_KEY: ${VLM_API_KEY:-}
       VLM_MODEL_NAME: ${VLM_MODEL_NAME:-qwen3-vl-lora}
       VLM_TIMEOUT: ${VLM_TIMEOUT:-60.0}
       # ---- 千帆 LLM ----

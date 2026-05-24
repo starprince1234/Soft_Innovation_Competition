@@ -40,14 +40,16 @@ class VLMDetector(DetectorPort):
     def __init__(
         self,
         base_url: str,
-        api_key: str = "sk-123456",
+        api_key: Optional[str] = None,
         model: str = "qwen3-vl-lora",
         timeout: float = 60.0,
+        enable_thinking: Optional[bool] = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
-        self._api_key = api_key
+        self._api_key = (api_key or "").strip()
         self._model = model
         self._timeout = timeout
+        self._enable_thinking = enable_thinking
 
     async def detect(self, image_bytes: bytes) -> DetectionResult:
         """
@@ -65,10 +67,9 @@ class VLMDetector(DetectorPort):
         base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
         url = f"{self._base_url}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self._api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
+        if self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
         payload = {
             "model": self._model,
             "messages": [
@@ -90,6 +91,8 @@ class VLMDetector(DetectorPort):
             "max_tokens": 1024,
             "stop": ["<|im_end|>", "<|endoftext|>", "<|end|>"],
         }
+        if self._enable_thinking is not None:
+            payload["enable_thinking"] = self._enable_thinking
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
@@ -139,7 +142,9 @@ class VLMDetector(DetectorPort):
         """检查 VLM 服务是否可达（调用 /models 端点）"""
         try:
             url = f"{self._base_url}/models"
-            headers = {"Authorization": f"Bearer {self._api_key}"}
+            headers = {}
+            if self._api_key:
+                headers["Authorization"] = f"Bearer {self._api_key}"
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(url, headers=headers)
             return resp.status_code == 200
@@ -165,6 +170,15 @@ class VLMDetector(DetectorPort):
         支持多种格式：纯 JSON、markdown 包裹的 JSON、或纯文本。
         """
         text = raw_text.strip()
+
+        # 兼容部分模型返回 <think>...</think> + 最终答案 的格式
+        think_removed = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE).strip()
+        if think_removed:
+            text = think_removed
+        if "</think>" in text:
+            tail = text.rsplit("</think>", 1)[1].strip()
+            if tail:
+                text = tail
 
         # 1. 尝试直接解析 JSON
         try:
