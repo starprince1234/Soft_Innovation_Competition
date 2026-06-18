@@ -1,0 +1,1 @@
+"use strict";const t=require("../constants/index.js");exports.pollTaskStatus=async(s,e,r)=>{let n=0;return new Promise((o,a)=>{const c=async()=>{try{if(n++,n>t.MAX_POLLING_TIMES)return void a(new Error("任务处理超时，请稍后重试"));const i=await e(s);if("COMPLETED"===i){const t=await r(s);o(t)}else"FAILED"===i?a(new Error("任务处理失败")):setTimeout(c,t.POLLING_INTERVAL)}catch(i){a(i)}};c()})};

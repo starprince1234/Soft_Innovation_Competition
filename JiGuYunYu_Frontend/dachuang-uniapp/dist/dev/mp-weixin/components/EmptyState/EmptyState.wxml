@@ -1,0 +1,1 @@
+<view class="empty-state data-v-00c0c74e"><image class="empty-image data-v-00c0c74e" src="{{a}}" mode="aspectFit"></image><text class="empty-text data-v-00c0c74e">{{b}}</text><view wx:if="{{c}}" class="empty-action data-v-00c0c74e"><slot></slot></view></view>

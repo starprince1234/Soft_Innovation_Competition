@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "文物详述",
+  "enablePullDownRefresh": false,
+  "enableShareAppMessage": true,
+  "enableShareTimeline": true,
+  "usingComponents": {
+    "custom-navbar": "../../components/CustomNavbar/CustomNavbar",
+    "empty-state": "../../components/EmptyState/EmptyState",
+    "loading": "../../components/Loading/Loading"
+  }
+}

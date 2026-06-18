@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "古韵问答",
+  "enablePullDownRefresh": false,
+  "usingComponents": {
+    "empty-state": "../../components/EmptyState/EmptyState",
+    "loading": "../../components/Loading/Loading"
+  }
+}
